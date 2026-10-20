@@ -366,7 +366,7 @@ footer.copy{text-align:center;color:#8d8778;font-size:13px;padding:14px 16px 18p
               <div class="seg" id="segFloor"><button data-v="ice">🧊 빙판</button><button data-v="wood" class="on">교실 바닥</button><button data-v="sand">사포</button></div></div>
           </div>
           <div class="card">
-            <h3>📋 실험 기록 <span style="font-size:15px;color:var(--muted);font-weight:700">움직이기 시작할 때 당긴 힘</span></h3>
+            <h3>📋 실험 기록 <span style="font-size:15px;color:var(--muted);font-weight:700">끌고 가는 동안 드는 힘</span></h3>
             <div id="records"></div>
           </div>
         </div>
@@ -870,16 +870,16 @@ function movePose(P, dx, dy){
    ===================================================================== */
 const labCv = $('labCanvas'), lctx = labCv.getContext('2d');
 const FLOORS = { ice:{name:'빙판', mu:0.15}, wood:{name:'교실 바닥', mu:1.0}, sand:{name:'사포', mu:1.5} };
-const FACES  = { plain:{name:'고무가 없는 면', short:'고무 없는 면', mu:0.2}, rubber:{name:'고무가 있는 면', short:'고무 있는 면', mu:0.9} };
+const FACES  = { plain:{name:'고무가 없는 면', short:'고무 없는 면', mu:0.15}, rubber:{name:'고무가 있는 면', short:'고무 있는 면', mu:1.0} };
 const WATERS = { full:{name:'가득', m:0.39, fill:0.95}, half:{name:'절반', m:0.22, fill:0.5}, empty:{name:'빈 병', m:0.06, fill:0} };
 const FLOOR_Y = 352, BR = 50;         // 바닥 높이, 페트병 반지름
 const ATT_R = 160, ATT_L = 150;       // 페트병 중심에서 손으로 잡는 곳까지
 const K = 1 / 60, PXM = 420, FMAX = 6; // 끈 거리(px)당 힘(N), px/m, 막대 최대(N)
 const LAB = {
   floor:'wood', face:'plain', water:'full', dir:1, arrows:false,
-  bx:300, hx:0, v:0, moving:false, F:0, fric:0, drag:null, started:false, touched:false, atEnd:false
+  bx:300, hx:0, cam:0, dist:0, moving:false, F:0, fric:0, drag:null, started:false, touched:false
 };
-const trials = new Map();              // 'floor|face|water|dir' -> {fs, arrows}
+const trials = new Map();              // 'floor|face|water|dir' -> {fk, arrows}
 const arrowDirs = new Set();           // 화살표 켜고 당겨 본 방향
 const level = F => F < 0.35 ? 0 : F < 0.9 ? 1 : F < 1.8 ? 2 : F < 3 ? 3 : 4;
 const LEVELS = ['아주 쉬움', '쉬움', '보통', '힘듦', '아주 힘듦'];
@@ -887,11 +887,12 @@ const FACES_EMO = ['😀', '🙂', '😐', '😣', '😫'];
 
 function labMu(){ return FLOORS[LAB.floor].mu * FACES[LAB.face].mu; }
 function labMass(){ return WATERS[LAB.water].m; }
+function labHome(){ return LAB.dir > 0 ? 210 : 790; }
 function attachX(){ return LAB.bx + (LAB.dir > 0 ? ATT_R : -ATT_L); }
 function labReset(){
-  LAB.bx = LAB.dir > 0 ? 300 : 700;
+  LAB.bx = labHome();
   LAB.hx = attachX();
-  LAB.v = 0; LAB.moving = false; LAB.F = 0; LAB.fric = 0; LAB.started = false; LAB.atEnd = false;
+  LAB.cam = 0; LAB.dist = 0; LAB.moving = false; LAB.F = 0; LAB.fric = 0; LAB.started = false;
 }
 labReset();
 
@@ -940,34 +941,41 @@ function clampHand(){
   LAB.hx = Math.max(20, Math.min(980, LAB.hx));
 }
 
+const KIN = 0.8;                       // 운동 마찰력 = 최대 정지 마찰력 × 0.8
+function labForces(){ const fs = labMu() * labMass() * 9.8; return { fs, fk: fs * KIN }; }
 function labStep(dt){
-  const m = labMass(), N = m * 9.8, fs = labMu() * N, fk = fs * 0.85;
+  const { fs, fk } = labForces();
   if (!LAB.drag) LAB.hx = attachX();
-  const stretch = LAB.dir * (LAB.hx - attachX());
-  const F = stretch > 0 ? stretch * K : 0;
+  let s = LAB.dir * (LAB.hx - attachX());
+  let F = s > 0 ? s * K : 0;
   if (!LAB.moving){
-    if (F > fs && !LAB.atEnd){ LAB.moving = true; LAB.v = 0; onStartMove(fs); }
-    else LAB.fric = F;
+    if (F > fs){ LAB.moving = true; onStartMove(fk); }
   }
   if (LAB.moving){
-    LAB.v += (F - fk) / m * dt;
-    if (LAB.v <= 0){ LAB.v = 0; LAB.moving = false; LAB.fric = Math.min(F, fs); }
+    if (!LAB.drag || F < fk * 0.97){ LAB.moving = false; }
     else {
-      LAB.fric = fk;
-      LAB.bx += LAB.dir * LAB.v * dt * PXM;
-      const lim = LAB.dir > 0 ? 1000 - ATT_R - 150 : ATT_L + 150;
-      if (LAB.dir * (LAB.bx - lim) > 0){ LAB.bx = lim; LAB.v = 0; LAB.moving = false; LAB.atEnd = true; }
+      // 손을 따라 끌려옴: 일정하게 끌려올 때 당기는 힘 = 운동 마찰력
+      const need = s - fk / K;
+      const step = Math.min(need, 900 * dt);
+      if (step > 0){ LAB.bx += LAB.dir * step; LAB.dist += step; }
+      s = LAB.dir * (LAB.hx - attachX()); F = Math.max(fk, s * K);
     }
   }
-  LAB.F = F;
+  // 손을 놓고 멈춰 있으면 바닥을 밀어 페트병을 처음 자리로 (계속 끌 수 있게)
+  if (!LAB.drag && !LAB.moving){
+    const home = labHome(), d = home - LAB.bx;
+    if (Math.abs(d) > 0.5){ const mv = Math.sign(d) * Math.min(Math.abs(d), 900 * dt); LAB.bx += mv; LAB.cam -= mv; LAB.hx = attachX(); }
+  }
+  LAB.F = LAB.drag ? F : 0;
+  LAB.fric = LAB.moving ? fk : Math.min(LAB.F, fs);
   clampHand();
 }
-function onStartMove(fs){
+function onStartMove(fk){
   if (LAB.started) return;
   LAB.started = true;
   const key = [LAB.floor, LAB.face, LAB.water, LAB.dir].join('|');
   trials.delete(key);
-  trials.set(key, { fs, arrows: LAB.arrows });
+  trials.set(key, { fk, arrows: LAB.arrows });
   if (LAB.arrows) arrowDirs.add(LAB.dir);
   renderRecords(); renderMissions();
 }
@@ -975,29 +983,35 @@ function onStartMove(fs){
 /* ----- 실험실 그리기 ----- */
 const RNG = rand(7), SPECK = Array.from({length:520}, () => [RNG(), RNG(), RNG()]);
 function drawFloor(ctx){
-  const y = FLOOR_Y, H = 470 - y;
+  const y = FLOOR_Y, H = 470 - y, off = ((LAB.cam % 1000) + 1000) % 1000;
   if (LAB.floor === 'wood'){
     ctx.fillStyle = '#d7a06a'; ctx.fillRect(0, y, 1000, H);
-    for (let i = 0; i < 9; i++){ ctx.fillStyle = i % 2 ? '#d19a63' : '#dcaa75'; ctx.fillRect(i * 125 - 30, y, 125, H); }
-    ctx.strokeStyle = 'rgba(120,70,30,.35)'; ctx.lineWidth = 2;
-    for (let i = 0; i < 9; i++){ ctx.beginPath(); ctx.moveTo(i * 125 - 30, y); ctx.lineTo(i * 125 - 30, 470); ctx.stroke(); }
-    ctx.strokeStyle = 'rgba(120,70,30,.15)'; ctx.lineWidth = 1.5;
-    for (let j = 0; j < 4; j++){ ctx.beginPath(); ctx.moveTo(0, y + 18 + j * 26); ctx.bezierCurveTo(300, y + 10 + j * 26, 600, y + 30 + j * 26, 1000, y + 16 + j * 26); ctx.stroke(); }
+    const o = ((LAB.cam % 250) + 250) % 250;
+    for (let i = -2; i < 10; i++){ const x = i * 125 - o; ctx.fillStyle = i % 2 ? '#d19a63' : '#dcaa75'; ctx.fillRect(x, y, 125, H);
+      ctx.strokeStyle = 'rgba(120,70,30,.35)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, 470); ctx.stroke(); }
     ctx.fillStyle = '#e9c08f'; ctx.fillRect(0, y, 1000, 5);
   } else if (LAB.floor === 'ice'){
     const g = ctx.createLinearGradient(0, y, 0, 470); g.addColorStop(0, '#e9f8ff'); g.addColorStop(1, '#a9dcf3');
     ctx.fillStyle = g; ctx.fillRect(0, y, 1000, H);
     ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 3;
-    [[80, 30, 220], [420, 60, 160], [700, 25, 200]].forEach(([x, dy, w]) => { ctx.beginPath(); ctx.moveTo(x, y + dy); ctx.lineTo(x + w, y + dy - 10); ctx.stroke(); });
-    ctx.strokeStyle = 'rgba(80,150,190,.35)'; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(560, y + 90); ctx.lineTo(600, y + 70); ctx.lineTo(640, y + 84); ctx.lineTo(690, y + 60); ctx.stroke();
+    [0, 1000].forEach(k => [[80, 30, 220], [420, 60, 160], [700, 25, 200]].forEach(([x, dy, w]) => { ctx.beginPath(); ctx.moveTo(x - off + k, y + dy); ctx.lineTo(x - off + k + w, y + dy - 10); ctx.stroke(); }));
     ctx.fillStyle = '#ffffff'; ctx.fillRect(0, y, 1000, 4);
   } else {
     ctx.fillStyle = '#c98c52'; ctx.fillRect(0, y, 1000, H);
-    SPECK.forEach(([a, b, c]) => { ctx.fillStyle = c > 0.5 ? 'rgba(90,50,20,.55)' : 'rgba(255,235,200,.6)'; ctx.fillRect(a * 1000, y + 4 + b * (H - 6), 2.6, 2.6); });
+    SPECK.forEach(([a, b, c]) => { ctx.fillStyle = c > 0.5 ? 'rgba(90,50,20,.55)' : 'rgba(255,235,200,.6)'; ctx.fillRect(((a * 1000 - off) + 1000) % 1000, y + 4 + b * (H - 6), 2.6, 2.6); });
     ctx.fillStyle = '#8a5a2e'; ctx.fillRect(0, y, 1000, 3);
-    for (let x = 0; x < 1000; x += 7){ ctx.fillStyle = '#6f4522'; ctx.fillRect(x, y - 2, 3, 2); }
   }
+  // 거리 눈금 (50 cm마다)
+  const step = PXM / 2, home = labHome(), first = Math.floor((LAB.cam - home) / step) - 1;
+  ctx.save(); ctx.font = '800 15px Pretendard, sans-serif'; ctx.textAlign = 'center';
+  for (let k = first; k < first + 8; k++){
+    const x = k * step + home - LAB.cam;
+    if (x < -20 || x > 1020) continue;
+    ctx.fillStyle = 'rgba(40,30,20,.55)'; ctx.fillRect(x - 1.5, 440, 3, 18);
+    const m = LAB.dir * k * 0.5;
+    if (m >= 0) ctx.fillText(m + ' m', x, 436);
+  }
+  ctx.restore();
 }
 function drawBottle(ctx){
   const cx = LAB.bx, cy = FLOOR_Y - BR - 4, fill = WATERS[LAB.water].fill;
@@ -1091,7 +1105,7 @@ function drawZoom(ctx, t){
   ctx.save();
   ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(cx, cy, R + 6, 0, 7); ctx.fill();
   ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.clip();
-  const shift = (LAB.bx * 1.6) % 40;
+  const shift = (((LAB.bx + LAB.cam) * 1.6) % 40 + 40) % 40;
   const w = WATERS[LAB.water].m, gap = 7 - w * 9;
   // 장갑 면
   const topCol = LAB.face === 'rubber' ? '#25408f' : '#e7eaf0';
@@ -1141,7 +1155,7 @@ function labDraw(t){
       ctx.beginPath(); ctx.moveTo(gx + LAB.dir * 60, gy - 50); ctx.lineTo(LAB.hx + LAB.dir * 60, gy - 50); ctx.stroke(); ctx.setLineDash([]);
       ctx.fillStyle = '#ff6a3d'; ctx.beginPath(); ctx.arc(LAB.hx + LAB.dir * 60, gy - 50, 9, 0, 7); ctx.fill();
       ctx.font = '800 18px Pretendard, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#b83f16';
-      ctx.fillText('끄는 힘 ' + ['약하게', '조금', '보통', '세게', '아주 세게'][level(LAB.F)], LAB.hx + LAB.dir * 60, gy - 70);
+      ctx.fillText('끄는 힘 ' + ['약하게', '조금', '보통', '세게', '아주 세게'][level(LAB.F)], Math.max(70, Math.min(930, LAB.hx + LAB.dir * 60)), gy - 70);
       ctx.restore();
     }
   }
@@ -1173,7 +1187,7 @@ function labDraw(t){
       tag(ctx, LAB.bx - 20, FLOOR_Y - 2 * BR - 50, '두 힘의 크기가 같아요 → 힘의 평형', '#7c3aed', { size:18, bg:'#f5f0ff' });
     }
   }
-  if (LAB.atEnd) tag(ctx, 500, 220, '끝까지 왔어요! [다시 놓기]를 눌러요', '#b83f16', { bg:'#fff3ea' });
+  tag(ctx, 500, 36 + 0, '끌고 온 거리 ' + (LAB.dist / PXM).toFixed(1) + ' m', '#0f8b8d', { size:19, align:'left' });
 }
 function labUI(){
   const F = LAB.F, lv = level(F);
@@ -1181,8 +1195,7 @@ function labUI(){
   $('mFace').textContent = F < 0.02 ? '🙂' : FACES_EMO[lv];
   $('mLbl').textContent = F < 0.02 ? '힘 안 줌' : LEVELS[lv];
   let s;
-  if (LAB.atEnd) s = '끝까지 끌려왔어요. 조건을 바꾸거나 [다시 놓기]를 눌러요.';
-  else if (LAB.moving) s = '🏃 페트병이 끌려오고 있어요!';
+  if (LAB.moving) s = '🏃 끌려오고 있어요! 끌고 가는 동안 드는 힘: ' + LEVELS[lv] + ' — 손을 놓았다가 다시 잡으면 계속 끌 수 있어요.';
   else if (F < 0.02) s = LAB.started ? '페트병이 멈췄어요. 더 당기거나 조건을 바꿔 봐요.' : '손을 잡고 끌어서 페트병을 잡아당겨 보세요.';
   else s = '🧱 아직 움직이지 않아요. 손을 더 멀리 끌어서 더 세게 당겨 보세요!';
   const st = $('labStatus'); if (st.textContent !== s) st.textContent = s;
@@ -1302,13 +1315,13 @@ function renderRecords(){
   const box = $('records'); box.textContent = '';
   if (!trials.size){ box.append(el('div', { class:'empty', text:'페트병이 움직이기 시작하면 여기에 기록돼요.' })); return; }
   const tb = el('table', { class:'records' });
-  tb.append(el('tr', {}, el('th', { text:'바닥' }), el('th', { text:'닿는 면' }), el('th', { text:'물' }), el('th', { text:'방향' }), el('th', { text:'당기기 힘든 정도', style:'width:36%' })));
+  tb.append(el('tr', {}, el('th', { text:'바닥' }), el('th', { text:'닿는 면' }), el('th', { text:'물' }), el('th', { text:'방향' }), el('th', { text:'끌고 가는 힘', style:'width:36%' })));
   [...trials.entries()].reverse().slice(0, 10).forEach(([k, v]) => {
     const [fl, fa, wa, dr] = k.split('|');
-    const w = Math.max(4, Math.min(100, v.fs / FMAX * 100));
-    const bar = el('div', { class:'rbar', style:'width:' + w + '%;background:' + ['#34c77b','#9bd34a','#f5c518','#ff8a3d','#e5484d'][level(v.fs)] });
+    const w = Math.max(4, Math.min(100, v.fk / FMAX * 100));
+    const bar = el('div', { class:'rbar', style:'width:' + w + '%;background:' + ['#34c77b','#9bd34a','#f5c518','#ff8a3d','#e5484d'][level(v.fk)] });
     tb.append(el('tr', {}, el('td', { text:FLOORS[fl].name }), el('td', { text:FACES[fa].short }), el('td', { text:WATERS[wa].name }), el('td', { text: dr === '1' ? '→' : '←', style:'font-weight:800' }),
-      el('td', {}, bar, el('div', { style:'font-size:14px;color:#7a8496;font-weight:700;margin-top:2px', text:LEVELS[level(v.fs)] }))));
+      el('td', {}, bar, el('div', { style:'font-size:14px;color:#7a8496;font-weight:700;margin-top:2px', text:LEVELS[level(v.fk)] }))));
   });
   box.append(tb);
 }
