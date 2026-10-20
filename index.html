@@ -119,6 +119,17 @@ main{flex:1;width:100%;max-width:1400px;margin:0 auto;padding:18px 16px 30px;pos
 .cond .ttl{font-weight:800;margin-bottom:6px;font-size:18px;color:var(--ink2)}
 .cond .seg{display:flex}
 .cond .seg button{flex:1}
+.mission-top{padding:16px 18px;margin-bottom:18px;border:3px solid var(--brand)}
+.mtop-h{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.mtop-h h3{margin:0;font-size:24px}
+.mstep-row{display:flex;gap:8px;flex-wrap:wrap}
+.mstep{border:2px solid var(--line);background:#fff;border-radius:999px;padding:8px 16px;font-weight:800;font-size:18px;min-height:46px}
+.mstep.done{background:var(--okBg);border-color:#b4e8cc;color:#0d6b3d}
+.mstep.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.mbody{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:18px;font-size:20px;background:#fffaf3;border-radius:16px;padding:14px 16px}
+.mbody .how{font-weight:700;line-height:1.6}
+.mbody .chk{font-size:18px;margin-top:6px}
+@media (max-width:900px){.mbody{grid-template-columns:1fr}}
 .mission{border:2px solid var(--line);border-radius:16px;margin-bottom:10px;overflow:hidden;background:#fff}
 .mission.done{border-color:#b4e8cc}
 .mission.current{border-color:var(--brand)}
@@ -322,8 +333,9 @@ footer.copy{text-align:center;color:#8d8778;font-size:13px;padding:14px 16px 18p
     <div id="pane-lab" class="pane hidden">
       <div class="pane-head">
         <div><div class="kicker">교과서 164쪽 해 보기</div><h2>물체의 운동을 방해하는 힘 알아보기</h2>
-        <p>장갑을 끼운 페트병을 고무줄로 잡아당겨 보세요. 고무줄이 많이 늘어날수록 힘을 많이 주는 거예요.</p></div>
+        <p>손을 잡고 끌어서 장갑을 끼운 페트병을 잡아당겨 보세요. 손을 멀리 끌수록 힘을 많이 주는 거예요.</p></div>
       </div>
+      <div class="card mission-top"><div id="missions"></div></div>
       <div class="lab-grid">
         <div class="card stage">
           <canvas id="labCanvas" width="1000" height="470" aria-label="페트병 잡아당기기 실험"></canvas>
@@ -352,10 +364,6 @@ footer.copy{text-align:center;color:#8d8778;font-size:13px;padding:14px 16px 18p
               <div class="seg" id="segWater"><button data-v="full" class="on">가득</button><button data-v="half">절반</button><button data-v="empty">빈 병</button></div></div>
             <div class="cond" style="margin-bottom:0"><div class="ttl">바닥 <span style="font-weight:600;color:var(--muted)">(더 알아보기)</span></div>
               <div class="seg" id="segFloor"><button data-v="ice">🧊 빙판</button><button data-v="wood" class="on">교실 바닥</button><button data-v="sand">사포</button></div></div>
-          </div>
-          <div class="card">
-            <h3>🎯 실험 미션</h3>
-            <div id="missions"></div>
           </div>
           <div class="card">
             <h3>📋 실험 기록 <span style="font-size:15px;color:var(--muted);font-weight:700">움직이기 시작할 때 당긴 힘</span></h3>
@@ -862,11 +870,11 @@ function movePose(P, dx, dy){
    ===================================================================== */
 const labCv = $('labCanvas'), lctx = labCv.getContext('2d');
 const FLOORS = { ice:{name:'빙판', mu:0.15}, wood:{name:'교실 바닥', mu:1.0}, sand:{name:'사포', mu:1.5} };
-const FACES  = { plain:{name:'고무가 없는 면', short:'고무 없는 면', mu:0.32}, rubber:{name:'고무가 있는 면', short:'고무 있는 면', mu:0.78} };
+const FACES  = { plain:{name:'고무가 없는 면', short:'고무 없는 면', mu:0.2}, rubber:{name:'고무가 있는 면', short:'고무 있는 면', mu:0.9} };
 const WATERS = { full:{name:'가득', m:0.39, fill:0.95}, half:{name:'절반', m:0.22, fill:0.5}, empty:{name:'빈 병', m:0.06, fill:0} };
 const FLOOR_Y = 352, BR = 50;         // 바닥 높이, 페트병 반지름
-const ATT_R = 172, ATT_L = 160;       // 페트병 중심에서 고무줄을 거는 곳까지
-const L0 = 55, K = 1 / 60, PXM = 420, FMAX = 5; // 고무줄 원래 길이(px), N/px, px/m, 막대 최대(N)
+const ATT_R = 160, ATT_L = 150;       // 페트병 중심에서 손으로 잡는 곳까지
+const K = 1 / 60, PXM = 420, FMAX = 6; // 끈 거리(px)당 힘(N), px/m, 막대 최대(N)
 const LAB = {
   floor:'wood', face:'plain', water:'full', dir:1, arrows:false,
   bx:300, hx:0, v:0, moving:false, F:0, fric:0, drag:null, started:false, touched:false, atEnd:false
@@ -882,7 +890,7 @@ function labMass(){ return WATERS[LAB.water].m; }
 function attachX(){ return LAB.bx + (LAB.dir > 0 ? ATT_R : -ATT_L); }
 function labReset(){
   LAB.bx = LAB.dir > 0 ? 300 : 700;
-  LAB.hx = attachX() + LAB.dir * (L0 - 12);
+  LAB.hx = attachX();
   LAB.v = 0; LAB.moving = false; LAB.F = 0; LAB.fric = 0; LAB.started = false; LAB.atEnd = false;
 }
 labReset();
@@ -909,32 +917,33 @@ $('arrowToggle').addEventListener('keydown', e => { if (e.key === ' ' || e.key =
 labCv.addEventListener('pointerdown', e => {
   const p = canvasPoint(labCv, e, 1000);
   const gy = FLOOR_Y - BR;
-  if (Math.abs(p.x - (LAB.hx + LAB.dir * 18)) < 90 && Math.abs(p.y - gy) < 90){
-    LAB.drag = { off: LAB.hx - p.x }; LAB.touched = true;
+  if (Math.abs(p.x - (attachX() + LAB.dir * 40)) < 100 && Math.abs(p.y - gy) < 90){
+    LAB.drag = { off: attachX() - p.x }; LAB.touched = true;
     labCv.setPointerCapture(e.pointerId);
   } else toast('✋ 손을 잡고 끌어 보세요!', 1500);
 });
 labCv.addEventListener('pointermove', e => {
   const p = canvasPoint(labCv, e, 1000);
-  const near = Math.abs(p.x - (LAB.hx + LAB.dir * 18)) < 90 && Math.abs(p.y - (FLOOR_Y - BR)) < 90;
+  const near = Math.abs(p.x - (attachX() + LAB.dir * 40)) < 100 && Math.abs(p.y - (FLOOR_Y - BR)) < 90;
   labCv.style.cursor = LAB.drag ? 'grabbing' : near ? 'grab' : 'default';
   if (!LAB.drag) return;
   LAB.hx = p.x + LAB.drag.off;
   clampHand();
 });
-const endDrag = () => { LAB.drag = null; };
+const endDrag = () => { LAB.drag = null; LAB.hx = attachX(); };
 labCv.addEventListener('pointerup', endDrag); labCv.addEventListener('pointercancel', endDrag);
 function clampHand(){
   const a = attachX();
   let s = LAB.dir * (LAB.hx - a);
-  s = Math.max(10, Math.min(L0 + FMAX / K * 1.02, s));
+  s = Math.max(0, Math.min(FMAX / K * 1.05, s));
   LAB.hx = a + LAB.dir * s;
   LAB.hx = Math.max(20, Math.min(980, LAB.hx));
 }
 
 function labStep(dt){
   const m = labMass(), N = m * 9.8, fs = labMu() * N, fk = fs * 0.85;
-  const stretch = LAB.dir * (LAB.hx - attachX()) - L0;
+  if (!LAB.drag) LAB.hx = attachX();
+  const stretch = LAB.dir * (LAB.hx - attachX());
   const F = stretch > 0 ? stretch * K : 0;
   if (!LAB.moving){
     if (F > fs && !LAB.atEnd){ LAB.moving = true; LAB.v = 0; onStartMove(fs); }
@@ -946,7 +955,7 @@ function labStep(dt){
     else {
       LAB.fric = fk;
       LAB.bx += LAB.dir * LAB.v * dt * PXM;
-      const lim = LAB.dir > 0 ? 1000 - ATT_R - L0 - 40 : ATT_L + L0 + 40;
+      const lim = LAB.dir > 0 ? 1000 - ATT_R - 150 : ATT_L + 150;
       if (LAB.dir * (LAB.bx - lim) > 0){ LAB.bx = lim; LAB.v = 0; LAB.moving = false; LAB.atEnd = true; }
     }
   }
@@ -1048,31 +1057,12 @@ function drawBottle(ctx){
   // 반사광
   ctx.fillStyle = 'rgba(255,255,255,.55)'; rr(ctx, xS + 6, cy - BR + 10, 30, 7, 3); ctx.fill();
 }
-function drawBand(ctx){
-  const ax = attachX(), ay = FLOOR_Y - BR - 4, hx = LAB.hx;
-  const d = Math.abs(hx - ax);
-  ctx.save(); ctx.strokeStyle = '#e8a33c'; ctx.lineCap = 'round';
-  if (d < L0){ // 느슨함
-    const sag = Math.sqrt(Math.max(0, L0 * L0 - d * d)) * 0.55;
-    ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(ax, ay - 6); ctx.quadraticCurveTo((ax + hx) / 2, ay + sag, hx, ay - 4); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(ax, ay + 6); ctx.quadraticCurveTo((ax + hx) / 2, ay + sag + 10, hx, ay + 4); ctx.stroke();
-  } else {
-    const w = Math.max(2.2, 6 - (d - L0) / 70);
-    const spread = Math.max(2, 9 - (d - L0) / 40);
-    ctx.lineWidth = w;
-    ctx.beginPath(); ctx.moveTo(ax, ay - 9); ctx.lineTo(hx, ay - spread / 2); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(ax, ay + 9); ctx.lineTo(hx, ay + spread / 2); ctx.stroke();
-  }
-  // 거는 고리
-  ctx.lineWidth = 6; ctx.beginPath(); ctx.ellipse(ax, ay, 5, 13, 0, 0, 7); ctx.stroke();
-  ctx.restore();
-}
 function drawFist(ctx, x, y, dir){
-  // 옆에서 본 주먹: 손가락이 고무줄을 감아쥔 모습
+  // 옆에서 본 주먹: 페트병 끝을 감아쥔 모습
   const skin = '#f5c6a0', edge = '#c98d66';
   ctx.save(); ctx.translate(x, y); ctx.scale(dir, 1);
   // 팔 (소매)
-  ctx.fillStyle = '#5b7cfa'; rr(ctx, 50, -27, 420, 54, 24); ctx.fill();
+  ctx.fillStyle = '#5b7cfa'; rr(ctx, 50, -27, 1100, 54, 24); ctx.fill();
   ctx.fillStyle = '#4766e0'; rr(ctx, 50, -27, 22, 54, 10); ctx.fill();
   // 손목
   ctx.fillStyle = skin; ctx.strokeStyle = edge; ctx.lineWidth = 2;
@@ -1105,7 +1095,7 @@ function drawZoom(ctx, t){
   const w = WATERS[LAB.water].m, gap = 7 - w * 9;
   // 장갑 면
   const topCol = LAB.face === 'rubber' ? '#25408f' : '#e7eaf0';
-  const tAmp = LAB.face === 'rubber' ? 8 : 3.5, tPer = LAB.face === 'rubber' ? 16 : 9;
+  const tAmp = LAB.face === 'rubber' ? 13 : 2, tPer = LAB.face === 'rubber' ? 18 : 8;
   ctx.fillStyle = topCol; ctx.beginPath(); ctx.moveTo(cx - R, cy - R);
   ctx.lineTo(cx + R, cy - R);
   for (let x = cx + R; x >= cx - R; x -= 2){ const ph = (x + shift - cx) / tPer * Math.PI * 2; const y = cy - gap + tAmp * (0.5 + 0.5 * Math.sin(ph)) * (LAB.face === 'rubber' ? 1 : (0.6 + 0.4 * Math.sin(ph * 0.37))); ctx.lineTo(x, y); }
@@ -1142,13 +1132,24 @@ function labDraw(t){
   ctx.restore();
   drawZoom(ctx, t);
   drawBottle(ctx);
-  drawBand(ctx);
-  drawFist(ctx, LAB.hx + LAB.dir * 28, FLOOR_Y - BR - 4, LAB.dir);
+  {
+    const gx = attachX(), gy = FLOOR_Y - BR - 4, strain = Math.min(1, LAB.F / FMAX);
+    const shake = (!LAB.moving && LAB.F > 0.05) ? Math.sin(t / 30) * (1 + strain * 3) : 0;
+    drawFist(ctx, gx + LAB.dir * 26 + shake, gy, LAB.dir);
+    if (LAB.drag && Math.abs(LAB.hx - gx) > 8){
+      ctx.save(); ctx.strokeStyle = 'rgba(255,106,61,.75)'; ctx.lineWidth = 4; ctx.setLineDash([10, 8]);
+      ctx.beginPath(); ctx.moveTo(gx + LAB.dir * 60, gy - 50); ctx.lineTo(LAB.hx + LAB.dir * 60, gy - 50); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = '#ff6a3d'; ctx.beginPath(); ctx.arc(LAB.hx + LAB.dir * 60, gy - 50, 9, 0, 7); ctx.fill();
+      ctx.font = '800 18px Pretendard, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#b83f16';
+      ctx.fillText('끄는 힘 ' + ['약하게', '조금', '보통', '세게', '아주 세게'][level(LAB.F)], LAB.hx + LAB.dir * 60, gy - 70);
+      ctx.restore();
+    }
+  }
   if (!LAB.touched){
     const p = (Math.sin(t / 250) + 1) / 2;
     ctx.save(); ctx.strokeStyle = 'rgba(255,106,61,' + (0.4 + 0.5 * p) + ')'; ctx.lineWidth = 4; ctx.setLineDash([8, 6]);
-    ctx.beginPath(); ctx.arc(LAB.hx + LAB.dir * 18, FLOOR_Y - BR - 4, 52 + 6 * p, 0, 7); ctx.stroke(); ctx.restore();
-    tag(ctx, LAB.hx + LAB.dir * 30, FLOOR_Y - BR - 90, '손을 잡고 끌어 보세요!', '#b83f16', { bg:'#fff3ea' });
+    ctx.beginPath(); ctx.arc(attachX() + LAB.dir * 30, FLOOR_Y - BR - 4, 56 + 6 * p, 0, 7); ctx.stroke(); ctx.restore();
+    tag(ctx, attachX() + LAB.dir * 60, FLOOR_Y - BR - 100, '손을 잡고 ' + (LAB.dir > 0 ? '오른쪽' : '왼쪽') + '으로 끌어 보세요!', '#b83f16', { bg:'#fff3ea' });
   }
   // 화살표
   if (LAB.arrows){
@@ -1182,8 +1183,8 @@ function labUI(){
   let s;
   if (LAB.atEnd) s = '끝까지 끌려왔어요. 조건을 바꾸거나 [다시 놓기]를 눌러요.';
   else if (LAB.moving) s = '🏃 페트병이 끌려오고 있어요!';
-  else if (F < 0.02) s = LAB.started ? '페트병이 멈췄어요. 더 당기거나 조건을 바꿔 봐요.' : '손을 잡고 끌어서 고무줄을 당겨 보세요.';
-  else s = '🧱 아직 움직이지 않아요. 고무줄을 더 늘여 보세요!';
+  else if (F < 0.02) s = LAB.started ? '페트병이 멈췄어요. 더 당기거나 조건을 바꿔 봐요.' : '손을 잡고 끌어서 페트병을 잡아당겨 보세요.';
+  else s = '🧱 아직 움직이지 않아요. 손을 더 멀리 끌어서 더 세게 당겨 보세요!';
   const st = $('labStatus'); if (st.textContent !== s) st.textContent = s;
 }
 
@@ -1195,7 +1196,7 @@ const MISSIONS = [
     qs:[{ q:'장갑과 바닥이 닿은 면에 따라 페트병이 끌려오는 정도는 어떻게 다른가요? 잡아당기기 더 힘든 쪽은?',
       opts:['고무가 없는 면이 바닥에 닿을 때','고무가 있는 면이 바닥에 닿을 때','차이가 없다'], ans:1,
       ok:'맞아요! 고무가 있는 면이 바닥에 닿으면 접촉면이 더 거칠어서 잡아당기기 더 힘들어요.',
-      no:'실험 기록의 막대를 비교해 보세요. 고무줄이 더 많이 늘어나야 움직인 쪽은 어디였나요?' }] },
+      no:'실험 기록의 막대를 비교해 보세요. 더 세게 당겨야 움직인 쪽은 어디였나요?' }] },
   { key:'lab2', title:'② 물의 양 바꿔 보기',
     how:'바닥은 [교실 바닥], 닿는 면은 [고무가 있는 면]으로 두고, 물을 [가득]과 [절반]으로 바꿔 가며 당겨 보세요.',
     need:[['wood','rubber','full','물 가득으로 당기기'], ['wood','rubber','half','물 절반으로 당기기']],
@@ -1214,7 +1215,7 @@ const MISSIONS = [
       opts:['물체의 운동 방향과 같은 방향','물체의 운동 방향과 반대 방향','항상 아래쪽(바닥 쪽)'], ans:1,
       ok:'맞아요! 마찰력은 운동을 방해하는 쪽, 즉 물체의 운동 방향과 반대 방향으로 작용해요.',
       no:'초록 화살표(운동 방향)와 빨간 화살표(마찰력)를 비교해 보세요.' },
-      { q:'고무줄을 살짝만 당겼더니 페트병이 움직이지 않았어요. 이때 마찰력의 크기는?',
+      { q:'페트병을 살짝만 당겼더니 움직이지 않았어요. 이때 마찰력의 크기는?',
       opts:['당기는 힘보다 크다','당기는 힘과 같다','0이다 (마찰력이 없다)'], ans:1,
       ok:'정확해요! 움직이지 않을 때는 당기는 힘과 마찰력의 크기가 같아서 힘의 평형을 이뤄요. 두 화살표 길이가 같았죠?',
       no:'페트병이 멈춰 있을 때 파란 화살표와 빨간 화살표의 길이를 비교해 보세요.' }] }
@@ -1231,30 +1232,30 @@ function missionDone(m){ return S.progress.has(m.key) || (MS[m.key] && MS[m.key]
 function renderMissions(){
   const box = $('missions'); if (!box) return;
   const cur = MISSIONS.find(m => !missionDone(m));
-  if (autoOpen) openMission = cur ? cur.key : '';
+  if (autoOpen || !openMission) openMission = cur ? cur.key : MISSIONS[MISSIONS.length - 1].key;
   box.textContent = '';
+  const row = el('div', { class:'mstep-row' });
   MISSIONS.forEach(m => {
-    const done = missionDone(m), isOpen = openMission === m.key;
-    const wrap = el('div', { class:'mission' + (done ? ' done' : '') + (cur === m ? ' current' : '') });
-    wrap.append(el('button', { class:'mission-h', type:'button', onclick:() => { autoOpen = false; openMission = isOpen ? '' : m.key; renderMissions(); } },
-      m.title, el('span', { class:'st', text: done ? '✅ 완료' : (cur === m ? '진행 중' : '') })));
-    if (isOpen){
-      const b = el('div', { class:'mission-b' });
-      b.append(el('div', { text:m.how }));
-      if (m.need) m.need.forEach(n => b.append(el('div', { class:'chk' + (needDone(n) ? ' yes' : '') }, needDone(n) ? '✔' : '○', ' ' + n[3])));
-      if (m.dirs){
-        b.append(el('div', { class:'chk' + (arrowDirs.has(1) ? ' yes' : '') }, arrowDirs.has(1) ? '✔' : '○', ' 화살표 켜고 오른쪽으로 당기기'));
-        b.append(el('div', { class:'chk' + (arrowDirs.has(-1) ? ' yes' : '') }, arrowDirs.has(-1) ? '✔' : '○', ' 화살표 켜고 왼쪽으로 당기기'));
-      }
-      const ready = missionReady(m) || done;
-      if (!ready) b.append(el('div', { class:'fb', style:'background:#f6f1e8;color:#6b6457', text:'위 실험을 해 보면 질문이 나타나요.' }));
-      else if (m.fill) b.append(fillUI(m));
-      else m.qs.forEach((q, qi) => b.append(questionUI(m, q, qi)));
-      wrap.append(b);
-    }
-    box.append(wrap);
+    const done = missionDone(m);
+    row.append(el('button', { class:'mstep' + (done ? ' done' : '') + (openMission === m.key ? ' on' : ''), type:'button',
+      onclick:() => { autoOpen = false; openMission = m.key; renderMissions(); } }, (done ? '✅ ' : '') + m.title));
   });
-  if (MISSIONS.every(missionDone)) box.append(el('div', { class:'textbook', text:'🎉 실험 미션 완료! 이제 교과서 164쪽 ⇨ 질문에 답을 직접 써 보세요.' }));
+  const nDone = MISSIONS.filter(missionDone).length;
+  box.append(el('div', { class:'mtop-h' }, el('h3', { text:'🎯 실험 미션 (' + nDone + '/4)' }), row));
+  const m = MISSIONS.find(x => x.key === openMission);
+  const done = missionDone(m);
+  const left = el('div', {}, el('div', { class:'how', text:m.how }));
+  if (m.need) m.need.forEach(n => left.append(el('div', { class:'chk' + (needDone(n) ? ' yes' : '') }, needDone(n) ? '✔' : '○', ' ' + n[3])));
+  if (m.dirs){
+    left.append(el('div', { class:'chk' + (arrowDirs.has(1) ? ' yes' : '') }, arrowDirs.has(1) ? '✔' : '○', ' 화살표 켜고 오른쪽으로 당기기'));
+    left.append(el('div', { class:'chk' + (arrowDirs.has(-1) ? ' yes' : '') }, arrowDirs.has(-1) ? '✔' : '○', ' 화살표 켜고 왼쪽으로 당기기'));
+  }
+  const right = el('div');
+  if (!(missionReady(m) || done)) right.append(el('div', { class:'fb', style:'background:#f6f1e8;color:#6b6457;font-size:19px', text:'👈 왼쪽 실험을 해 보면 여기에 질문이 나타나요.' }));
+  else if (m.fill) right.append(fillUI(m));
+  else m.qs.forEach((q, qi) => right.append(questionUI(m, q, qi)));
+  box.append(el('div', { class:'mbody' }, left, right));
+  if (MISSIONS.every(missionDone)) box.append(el('div', { class:'textbook', style:'margin-top:12px', text:'🎉 실험 미션 완료! 이제 교과서 164쪽 ⇨ 질문에 답을 직접 써 보세요.' }));
 }
 function questionUI(m, q, qi){
   const st = MS[m.key] = MS[m.key] || { picks:{}, done:false };
