@@ -65,6 +65,9 @@ button{cursor:pointer}
 .notice.info{background:#eef6ff;color:#1e4b8f;border:1px solid #cfe1fb}
 .entry-card .btn.primary{width:100%;font-size:22px;min-height:60px;margin-top:6px}
 .entry-teacher{margin-top:18px}
+.nickrow{display:flex;gap:8px}
+.nickrow input{flex:1;min-width:0}
+.btn.dice{white-space:nowrap;background:#fff7f2;border-color:#ffc9b3;color:var(--brandInk);font-size:18px}
 
 /* ---------- 상단 ---------- */
 .topbar{position:sticky;top:0;z-index:20;background:rgba(251,246,238,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
@@ -295,7 +298,8 @@ footer.copy{text-align:center;color:#8d8778;font-size:13px;padding:14px 16px 18p
       </div>
       <div class="field">
         <label for="inNick">닉네임</label>
-        <input id="inNick" maxlength="10" placeholder="2~10글자 (한글·영어·숫자)" required>
+        <div class="nickrow"><input id="inNick" maxlength="10" placeholder="2~10글자 (한글·영어·숫자)" required><button class="btn dice" type="button" data-target="inNick">🎲 랜덤 닉네임</button></div>
+        <div class="help">짓기 어려우면 🎲 버튼을 눌러 보세요. 마음에 들 때까지 여러 번 눌러도 돼요.</div>
       </div>
       <div class="notice warn"><b>⚠️ 닉네임에 실명을 쓰지 마세요.</b><br>한 번 입장하면 다른 이름으로 바꿀 수 없어요. 닉네임을 바꾸려면 선생님 승인이 필요해요. 이상한 닉네임이나 욕설은 선생님이 모두 확인할 수 있어요.</div>
       <div id="entryErr" class="notice bad hidden"></div>
@@ -473,7 +477,7 @@ footer.copy{text-align:center;color:#8d8778;font-size:13px;padding:14px 16px 18p
   <h3>닉네임 변경 요청</h3>
   <p style="color:var(--ink2)">선생님이 승인하면 닉네임이 바뀌어요. <b>실명은 쓰지 마세요.</b></p>
   <div id="nickPending" class="notice info hidden"></div>
-  <div class="field"><label for="inNewNick">새 닉네임</label><input id="inNewNick" maxlength="10" placeholder="2~10글자"></div>
+  <div class="field"><label for="inNewNick">새 닉네임</label><div class="nickrow"><input id="inNewNick" maxlength="10" placeholder="2~10글자"><button class="btn dice" type="button" data-target="inNewNick">🎲 랜덤</button></div></div>
   <div id="nickErr" class="notice bad hidden"></div>
   <div class="modal-actions"><button class="btn" data-close type="button">취소</button><button class="btn primary" id="nickSend" type="button">요청 보내기</button></div>
 </div></div>
@@ -552,7 +556,7 @@ const ERR = {
   bad_sid: '학번을 다시 확인해 주세요. (예: ' + GRADE + '학년 6반 12번 → ' + GRADE + '0612)',
   bad_nick: '닉네임은 2~10글자, 한글·영어·숫자만 쓸 수 있어요. (띄어쓰기·특수문자 X)',
   other_nick: '이 학번은 다른 닉네임으로 이미 입장했어요. 처음에 쓴 닉네임을 입력하세요. 기억나지 않으면 선생님께 말씀드려요.',
-  nick_taken: '다른 친구가 이미 쓰고 있는 닉네임이에요. 다른 닉네임을 써 주세요.',
+  nick_taken: '다른 친구가 이미 쓰고 있는 닉네임이에요. 🎲 버튼을 다시 눌러 다른 닉네임을 골라 주세요.',
   same_nick: '지금 쓰는 닉네임과 같아요.',
   no_student: '학생 정보를 찾을 수 없어요. 다시 입장해 주세요.',
   closed: '선생님이 담벼락을 닫았어요. 다시 열리면 올릴 수 있어요.',
@@ -599,6 +603,22 @@ function loadMe(){
 function saveMe(v){ try { if (v) localStorage.setItem(LS_KEY, JSON.stringify(v)); else localStorage.removeItem(LS_KEY); } catch (e){} }
 
 function canSave(){ return !!S.me && !S.asTeacher; }
+
+/* ---------- 랜덤 닉네임: 놀림거리가 되지 않는 긍정적인 말 + 동물 (돼지 등 제외) ---------- */
+const NICK_ADJ = ['노래하는','춤추는','용감한','반짝이는','씩씩한','슬기로운','날쌘','신나는','똑똑한','친절한','행복한','빛나는',
+  '탐구하는','꿈꾸는','힘찬','멋진','상냥한','발명하는','별보는','책읽는','달리는','날아가는','실험하는','웃음짓는','용기있는','지혜로운','다정한','당당한'];
+const NICK_ANI = ['기린','펭귄','수달','고래','돌고래','판다','여우','사슴','토끼','다람쥐','부엉이','독수리','코알라','해달','알파카',
+  '고양이','강아지','사자','호랑이','치타','앵무새','거북이','해마','비버','라쿤','북극곰','표범','물개','두루미','고슴도치','카멜레온'];
+function randomNick(){
+  for (let i = 0; i < 20; i++){
+    const n = NICK_ADJ[Math.floor(Math.random() * NICK_ADJ.length)] + NICK_ANI[Math.floor(Math.random() * NICK_ANI.length)];
+    if (n.length <= 10) return n;
+  }
+  return '용감한기린';
+}
+document.querySelectorAll('.btn.dice').forEach(b => b.addEventListener('click', () => {
+  const inp = $(b.dataset.target); inp.value = randomNick(); inp.dispatchEvent(new Event('input'));
+}));
 async function saveProgress(key){
   if (!canSave() || S.progress.has(key)) return;
   S.progress.add(key);
