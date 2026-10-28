@@ -122,6 +122,12 @@ main{flex:1;width:100%;max-width:1400px;margin:0 auto;padding:18px 16px 30px;pos
 .cond .ttl{font-weight:800;margin-bottom:6px;font-size:18px;color:var(--ink2)}
 .cond .seg{display:flex}
 .cond .seg button{flex:1}
+.stepper{display:flex;align-items:center;gap:14px}
+.stepper button{width:64px;height:64px;border-radius:18px;border:2px solid var(--line);background:#fff;font-size:34px;font-weight:800;line-height:1}
+.stepper span{font-size:32px;font-weight:800;min-width:80px;text-align:center}
+.pushsum{font-size:20px;font-weight:800;color:var(--ink2)}
+.pushsum b{color:var(--pull)}
+.qset{margin-top:10px}
 .mission-top{padding:16px 18px;margin-bottom:18px;border:3px solid var(--brand)}
 .mtop-h{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
 .mtop-h h3{margin:0;font-size:24px}
@@ -260,7 +266,7 @@ footer.copy{text-align:center;color:#8d8778;font-size:13px;padding:14px 16px 18p
 #toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);opacity:0;background:var(--ink);color:#fff;padding:14px 22px;border-radius:16px;font-weight:700;font-size:18px;z-index:200;transition:all .25s;max-width:min(92vw,620px);text-align:center;pointer-events:none}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-@media (max-width:1360px){
+@media (max-width:1500px){
   .tabs{order:3;flex-basis:100%;justify-content:flex-start}
   .brand{flex:1}
 }
@@ -315,8 +321,9 @@ footer.copy{text-align:center;color:#8d8778;font-size:13px;padding:14px 16px 18p
     <div class="brand jua"><div class="logo-mark"><svg width="26" height="26" viewBox="0 0 36 36"><rect x="5" y="9" width="20" height="14" rx="3" fill="#fff"/><path d="M2 27h32" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M27 16h6m-3-3l3 3-3 3" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>마찰력 탐구실</div>
     <nav class="tabs" id="tabs">
       <button class="tabbtn" data-tab="lab"><span class="num">1</span><span>실험실</span><span class="lock hidden">🔒</span></button>
-      <button class="tabbtn" data-tab="dir"><span class="num">2</span><span><span class="lbl-long">마찰력 </span>방향 찾기</span><span class="lock hidden">🔒</span></button>
-      <button class="tabbtn" data-tab="wall"><span class="num">3</span><span>사례 담벼락</span><span class="lock hidden">🔒</span></button>
+      <button class="tabbtn" data-tab="push"><span class="num">2</span><span>힘 모아 밀기</span><span class="lock hidden">🔒</span></button>
+      <button class="tabbtn" data-tab="dir"><span class="num">3</span><span><span class="lbl-long">마찰력 </span>방향 찾기</span><span class="lock hidden">🔒</span></button>
+      <button class="tabbtn" data-tab="wall"><span class="num">4</span><span>사례 담벼락</span><span class="lock hidden">🔒</span></button>
     </nav>
     <div class="me">
       <span class="me-badge" id="meBadge"></span>
@@ -401,6 +408,43 @@ footer.copy{text-align:center;color:#8d8778;font-size:13px;padding:14px 16px 18p
       </div>
     </div>
 
+    <!-- ===== 탭: 힘 모아 밀기 ===== -->
+    <div id="pane-push" class="pane hidden">
+      <div class="pane-head">
+        <div><div class="kicker">힘을 모아 밀기</div><h2>몇 명이 밀어야 상자가 움직일까?</h2>
+        <p>미는 사람 수, 한 사람이 미는 힘, 상자 무게, 바닥의 거칠기를 바꿔 가며 상자를 밀어 보세요.</p></div>
+      </div>
+      <div class="card mission-top"><div id="pushQuests"></div></div>
+      <div class="lab-grid">
+        <div class="card stage">
+          <canvas id="pushCanvas" width="1000" height="480" aria-label="상자 밀기 실험"></canvas>
+          <div class="ctrlrow">
+            <button class="btn primary" id="pushGo" type="button" style="font-size:22px;min-height:60px;padding:10px 28px">💪 밀어 보기!</button>
+            <div class="pushsum" id="pushSum"></div>
+          </div>
+        </div>
+        <div class="side">
+          <div class="card">
+            <h3>👥 미는 사람</h3>
+            <div class="stepper"><button type="button" id="pMinus" aria-label="한 명 빼기">−</button><span id="pCount">1명</span><button type="button" id="pPlus" aria-label="한 명 더하기">+</button></div>
+            <div class="cond" style="margin:12px 0 0"><div class="ttl">한 사람이 미는 힘</div>
+              <div class="seg" id="segPF"><button data-v="50">50 N</button><button data-v="100" class="on">100 N</button><button data-v="150">150 N</button></div></div>
+          </div>
+          <div class="card">
+            <h3>📦 상자와 바닥</h3>
+            <div class="cond"><div class="ttl">상자 무게</div>
+              <div class="seg" id="segPW"><button data-v="300">300 N</button><button data-v="500" class="on">500 N</button><button data-v="800">800 N</button></div></div>
+            <div class="cond" style="margin-bottom:0"><div class="ttl">바닥의 거칠기</div>
+              <div class="seg" id="segPR"><button data-v="smooth">매끄러운 바닥</button><button data-v="mid" class="on">보통 바닥</button><button data-v="rough">거친 바닥</button></div></div>
+          </div>
+          <div class="card">
+            <h3>📋 밀어 본 기록</h3>
+            <div id="pushLog"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ===== 탭 3: 담벼락 ===== -->
     <div id="pane-wall" class="pane hidden">
       <div class="pane-head">
@@ -446,7 +490,7 @@ footer.copy{text-align:center;color:#8d8778;font-size:13px;padding:14px 16px 18p
     <div id="t-students" class="hidden">
       <div class="wall-top"><div class="chips" id="tStuChips"></div><span id="tStuSum" style="font-weight:800;color:var(--ink2)"></span></div>
       <div style="overflow:auto"><table class="ttable" id="tStuTable"></table></div>
-      <p style="color:var(--muted);font-size:16px">실험 미션 ①~④, 방향 찾기 1~8 중 맞힌 것이 초록색으로 표시돼요. '기록 삭제'를 누르면 그 학생이 다시 입장할 수 있어요(올린 사례도 함께 지워져요).</p>
+      <p style="color:var(--muted);font-size:16px">실험 미션 ①~④, 방향 찾기 1~7 중 맞힌 것이 초록색으로 표시돼요. '기록 삭제'를 누르면 그 학생이 다시 입장할 수 있어요(올린 사례도 함께 지워져요).</p>
     </div>
     <div id="t-nicks" class="hidden"><div id="nickList"></div></div>
     <div id="t-wall" class="hidden">
@@ -699,16 +743,17 @@ async function refreshState(){
   if (S.progress.size !== before){ renderMissions(); renderScList(); }
   if (prevPosts !== S.myPosts && S.active === 'wall') loadWall();
 }
+const tabKey = t => t === 'push' ? 'lab' : t;   // 힘 모아 밀기는 실험실과 함께 열고 닫힘
 function firstOpenTab(){ return ['lab','dir','wall'].find(t => S.tabs[t]); }
 function updateHeader(){
   const b = $('meBadge');
   if (S.asTeacher){ b.textContent = '👩‍🏫 교사 화면'; b.classList.add('teacher'); $('nickReqBtn').classList.add('hidden'); $('teacherBtn').textContent = '👩‍🏫 교사 메뉴'; }
   else { b.textContent = GRADE + '학년 ' + S.cls + '반 · ' + S.nick; b.classList.remove('teacher'); $('nickReqBtn').classList.remove('hidden'); $('teacherBtn').textContent = '👩‍🏫 교사 모드'; }
 }
-function tabOpen(t){ return S.asTeacher || !!S.tabs[t]; }
+function tabOpen(t){ return S.asTeacher || !!S.tabs[tabKey(t)]; }
 function updateTabLocks(){
   document.querySelectorAll('.tabbtn').forEach(b => {
-    const t = b.dataset.tab, open = !!S.tabs[t];
+    const t = b.dataset.tab, open = !!S.tabs[tabKey(t)];
     b.classList.toggle('locked', !open && !S.asTeacher);
     b.querySelector('.lock').classList.toggle('hidden', open);
     b.title = open ? '' : (S.asTeacher ? '학생에게는 닫혀 있어요' : '선생님이 아직 열지 않았어요');
@@ -727,10 +772,11 @@ function selectTab(t){
 }
 function showPane(){
   const t = S.active, open = tabOpen(t);
-  ['lab','dir','wall'].forEach(x => $('pane-' + x).classList.toggle('hidden', !(x === t && open)));
+  ['lab','push','dir','wall'].forEach(x => $('pane-' + x).classList.toggle('hidden', !(x === t && open)));
   $('lockedPane').classList.toggle('hidden', open);
   if (open && t === 'lab') resizeCanvas(labCv, 1000, 470);
   if (open && t === 'dir') resizeCanvas(dirCv, 1000, 560);
+  if (open && t === 'push') resizeCanvas(pushCv, 1000, 480);
 }
 
 /* ---------- 닉네임 변경 요청 ---------- */
@@ -1195,7 +1241,7 @@ function labDraw(t){
       arrow(ctx, ax, cy, ax + LAB.dir * Math.max(8, LAB.F * S), cy, '#2563eb', 8);
       tag(ctx, ax + LAB.dir * Math.max(8, LAB.F * S) / 2, cy - 42, '당기는 힘', '#2563eb', { size:18 });
     }
-    if (LAB.fric > 0.005){
+    if (LAB.moving && LAB.fric > 0.005){
       const fx = LAB.bx - 10, fy = FLOOR_Y + 1;
       arrow(ctx, fx, fy, fx - LAB.dir * Math.max(8, LAB.fric * S), fy, '#e11d48', 8);
       tag(ctx, fx - LAB.dir * Math.max(8, LAB.fric * S) / 2, fy + 40, '마찰력', '#e11d48', { size:18 });
@@ -1205,8 +1251,6 @@ function labDraw(t){
       const mx = LAB.bx - 20, my = FLOOR_Y - 2 * BR - 46;
       arrow(ctx, mx, my, mx + LAB.dir * 110, my, '#16a34a', 7, true);
       tag(ctx, mx + LAB.dir * 55, my - 30, '운동 방향', '#16a34a', { size:17 });
-    } else if (LAB.F > 0.005 && LAB.fric > 0.005){
-      tag(ctx, LAB.bx - 20, FLOOR_Y - 2 * BR - 50, '두 힘의 크기가 같아요 → 힘의 평형', '#7c3aed', { size:18, bg:'#f5f0ff' });
     }
   }
   tag(ctx, 500, 36 + 0, '끌고 온 거리 ' + (LAB.dist / PXM).toFixed(1) + ' m', '#0f8b8d', { size:19, align:'left' });
@@ -1249,11 +1293,7 @@ const MISSIONS = [
     qs:[{ q:'마찰력은 어느 방향으로 작용하나요?',
       opts:['물체의 운동 방향과 같은 방향','물체의 운동 방향과 반대 방향','항상 아래쪽(바닥 쪽)'], ans:1,
       ok:'맞아요! 마찰력은 운동을 방해하는 쪽, 즉 물체의 운동 방향과 반대 방향으로 작용해요.',
-      no:'초록 화살표(운동 방향)와 빨간 화살표(마찰력)를 비교해 보세요.' },
-      { q:'페트병을 살짝만 당겼더니 움직이지 않았어요. 이때 마찰력의 크기는?',
-      opts:['당기는 힘보다 크다','당기는 힘과 같다','0이다 (마찰력이 없다)'], ans:1,
-      ok:'정확해요! 움직이지 않을 때는 당기는 힘과 마찰력의 크기가 같아서 힘의 평형을 이뤄요. 두 화살표 길이가 같았죠?',
-      no:'페트병이 멈춰 있을 때 파란 화살표와 빨간 화살표의 길이를 비교해 보세요.' }] }
+      no:'초록 화살표(운동 방향)와 빨간 화살표(마찰력)를 비교해 보세요.' }] }
 ];
 const MS = {};          // 미션별 답 상태
 let openMission = null, autoOpen = true;
@@ -1500,24 +1540,6 @@ const SC = [
       person(ctx, P);
       ctx.fillStyle = 'rgba(255,255,255,.9)'; for (let i = 0; i < 6; i++){ ctx.beginPath(); ctx.arc(C[0] + 100 + i * 14 - d[0] * 0, C[1] - 30 - i * 6, 6 - i * 0.6, 0, 7); ctx.fill(); }
     } },
-  { id:6, title:'꿈쩍 않는 냉장고', tag:'정지한 물체', desc:'냉장고를 오른쪽으로 힘껏 밀었지만 냉장고가 움직이지 않아요. 냉장고에 작용하는 마찰력의 방향은?',
-    point:o => [610, 450], ans:Math.PI, motion:0, travel:0, still:true, endMsg:'미는 힘 = 마찰력 → 힘의 평형! 그래서 움직이지 않아요',
-    hint:'냉장고는 오른쪽으로 움직이려고 해요. 움직이지 않는 까닭은 마찰력이 미는 힘과 평형을 이루기 때문이에요.',
-    draw(ctx, o, t){
-      sky(ctx, '#fff6ea', '#f6e7d2'); woodFloor(ctx, 450);
-      const sh = this._solvedAnim ? Math.sin(t / 40) * 1.5 : 0;
-      ctx.fillStyle = 'rgba(0,0,0,.12)'; ctx.beginPath(); ctx.ellipse(610, 452, 100, 7, 0, 0, 7); ctx.fill();
-      ctx.fillStyle = '#e9eef5'; rr(ctx, 520, 130, 180, 320, 14); ctx.fill(); ctx.strokeStyle = '#a7b3c4'; ctx.lineWidth = 3; rr(ctx, 520, 130, 180, 320, 14); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(520, 250); ctx.lineTo(700, 250); ctx.stroke();
-      ctx.fillStyle = '#94a3b8'; rr(ctx, 678, 170, 8, 56, 4); ctx.fill(); rr(ctx, 678, 270, 8, 90, 4); ctx.fill();
-      ctx.fillStyle = '#ffd166'; ctx.beginPath(); ctx.arc(570, 180, 10, 0, 7); ctx.fill(); ctx.fillStyle = '#ef476f'; ctx.fillRect(590, 290, 22, 22);
-      person(ctx, { face:1, shirt:'#118ab2', pants:'#3d405b', hair:'#2b1d14', strain:true, sweat:true,
-        head:[492 + sh, 244], neck:[466 + sh, 280], hip:[396, 352],
-        armF:[[466, 292], [494, 304], [520, 318]], armB:[[460, 288], [492, 294], [520, 300]],
-        legF:[[396, 352], [440, 396], [444, 446]], legB:[[394, 352], [344, 398], [300, 446]] });
-      // 미는 힘 (주어진 힘)
-      arrow(ctx, 520, 360, 640, 360, '#2563eb', 8); tag(ctx, 590, 330, '미는 힘', '#2563eb', { size:18 });
-    } },
   { id:7, title:'칠판 지우기', tag:'세로 면', desc:'칠판지우개를 칠판에 대고 위쪽으로 밀어 올리며 칠판을 지우고 있어요. 칠판지우개에 작용하는 마찰력의 방향은?',
     point:o => [500, 330 - o], ans:Math.PI / 2, motion:-Math.PI / 2, travel:120, endMsg:'지우개가 위로 움직이는 동안 마찰력은 아래쪽으로 작용해요.',
     hint:'지우개는 칠판 면을 따라 위쪽으로 움직이고 있어요. 마찰력은 그 반대 방향!',
@@ -1576,7 +1598,7 @@ function renderScList(){
   SC.forEach((s, i) => {
     const solved = DS.st[i].solved || S.progress.has('dir' + s.id);
     box.append(el('button', { class:'scbtn' + (i === DS.idx ? ' on' : '') + (solved ? ' solved' : ''), type:'button', onclick:() => selectSc(i) },
-      el('span', { class:'n', text: solved ? '✓' : String(s.id) }), s.title));
+      el('span', { class:'n', text: solved ? '✓' : String(i + 1) }), s.title));
   });
   const n = SC.filter((s, i) => DS.st[i].solved || S.progress.has('dir' + s.id)).length;
   $('dirProgress').textContent = '맞힌 상황 ' + n + ' / ' + SC.length;
@@ -1584,7 +1606,7 @@ function renderScList(){
 function selectSc(i){
   DS.idx = i; DS.draw = null; DS.anim = null;
   const s = SC[i];
-  $('scTitle').textContent = s.id + '. ' + s.title; $('scTag').textContent = s.tag; $('scDesc').textContent = s.desc;
+  $('scTitle').textContent = (i + 1) + '. ' + s.title; $('scTag').textContent = s.tag; $('scDesc').textContent = s.desc;
   renderScList(); updateDirUI();
 }
 function curSt(){ return DS.st[DS.idx]; }
@@ -1595,7 +1617,7 @@ function updateDirUI(){
   $('dirPlay').classList.toggle('hidden', !(st.solved || st.revealed));
   $('dirPlay').textContent = s.still ? '▶ 힘 비교해 보기' : '▶ 움직여 보기';
   const fb = $('dirFb'); fb.textContent = '';
-  if (st.solved) fb.append(el('div', { class:'fb ok', text:'⭕ 정답! ' + (s.still ? '냉장고가 움직이지 않는 까닭은 마찰력이 미는 힘과 크기가 같고 방향이 반대여서 힘의 평형을 이루기 때문이에요.' : '마찰력은 물체의 운동 방향과 반대 방향으로 작용해요. [움직여 보기]를 눌러 보세요.') }));
+  if (st.solved) fb.append(el('div', { class:'fb ok', text:'⭕ 정답! ' + '마찰력은 물체의 운동 방향과 반대 방향으로 작용해요. [움직여 보기]를 눌러 보세요.' }));
   else if (st.revealed) fb.append(el('div', { class:'fb', style:'background:#f5f0ff;color:#5b21b6', text:'💡 정답은 보라색 점선 화살표예요. [다시 그리기]를 눌러 직접 그려 보세요.' }));
   else if (st.msg) fb.append(el('div', { class:'fb no', text:st.msg }));
   if (!st.solved && st.wrong >= 1) fb.append(el('div', { class:'fb', style:'background:#eefbf3;color:#11643a;margin-top:6px', text:'힌트: ' + s.hint }));
@@ -1618,7 +1640,7 @@ dirCv.addEventListener('pointerup', () => {
   if (angDiff(a, s.ans) < 0.44){ st.solved = true; st.msg = ''; saveProgress('dir' + s.id); renderScList(); }
   else {
     st.wrong++;
-    if (angDiff(a, s.motion) < 0.5) st.msg = s.still ? '그건 냉장고를 미는 방향이에요. 마찰력은 냉장고가 움직이지 못하게 방해해요!' : '그건 물체가 움직이는 방향(운동 방향)이에요. 마찰력은 운동을 방해하는 쪽으로 작용해요!';
+    if (angDiff(a, s.motion) < 0.5) st.msg = '그건 물체가 움직이는 방향(운동 방향)이에요. 마찰력은 운동을 방해하는 쪽으로 작용해요!';
     else if (s.id !== 7 && angDiff(a, Math.PI / 2) < 0.5) st.msg = '그건 아래쪽(중력의 방향)이에요. 마찰력은 두 물체가 닿은 면을 따라 작용해요.';
     else if (s.id !== 7 && angDiff(a, -Math.PI / 2) < 0.5) st.msg = '마찰력은 위로 들어 올리는 힘이 아니에요. 닿은 면을 따라 작용해요.';
     else st.msg = '다시 생각해 보세요. 물체는 어느 쪽으로 움직이고(움직이려 하고) 있나요?';
@@ -1813,7 +1835,7 @@ async function loadOverview(){
   if (!r.ok){ if (r.err === 'wrong'){ toast(errMsg(r.err)); teacherLogout(); } return; }
   T.data = r; S.tabs = r.tabs; renderTeacher();
 }
-const TAB_INFO = { lab:['① 실험실', '교과서 164쪽 페트병 실험 + 미션'], dir:['② 마찰력 방향 찾기', '8가지 상황에서 화살표 그리기'], wall:['③ 사례 담벼락', '크게/작게 하는 경우 올리기'] };
+const TAB_INFO = { lab:['① 실험실 + ② 힘 모아 밀기', '교과서 164쪽 페트병 실험 + 미션, 사람 수·무게·바닥을 바꿔 상자 밀기'], dir:['③ 마찰력 방향 찾기', '7가지 상황에서 화살표 그리기'], wall:['④ 사례 담벼락', '크게/작게 하는 경우 올리기'] };
 function renderTeacher(){
   const d = T.data; if (!d) return;
   // 탭 스위치
@@ -1844,7 +1866,7 @@ function renderTeacher(){
   list.forEach(s => {
     const pg = new Set(s.progress || []);
     const lab = el('td', { class:'marks' }, [1, 2, 3, 4].map(i => el('span', { class: pg.has('lab' + i) ? 'y' : '', text:['①','②','③','④'][i - 1] })));
-    const dir = el('td', { class:'marks' }, SC.map(sc => el('span', { class: pg.has('dir' + sc.id) ? 'y' : '', text:sc.id })));
+    const dir = el('td', { class:'marks' }, SC.map((sc, i) => el('span', { class: pg.has('dir' + sc.id) ? 'y' : '', text:i + 1 })));
     tb.append(el('tr', {}, el('td', { text:s.sid }),
       el('td', {}, el('b', { text:s.nick }), s.pending_nick ? el('span', { style:'color:var(--brandInk);font-size:14px', text:' (요청: ' + s.pending_nick + ')' }) : null),
       lab, dir, el('td', { text:s.posts + '개' }),
@@ -1892,6 +1914,178 @@ function teacherLogout(){
 }
 
 /* =====================================================================
+   탭: 힘 모아 밀기
+   ===================================================================== */
+const pushCv = $('pushCanvas'), pctx = pushCv.getContext('2d');
+const PW = { 300:{name:'가벼운 상자', w:200, h:170}, 500:{name:'보통 상자', w:225, h:190}, 800:{name:'무거운 상자', w:250, h:215} };
+const PR = { smooth:{name:'매끄러운 바닥', mu:0.15}, mid:{name:'보통 바닥', mu:0.3}, rough:{name:'거친 바닥', mu:0.5} };
+const P = { n:1, f:100, w:500, r:'mid', anim:null, last:null };
+const pushLog = [];
+const P_FLOOR = 420, P_BOXL = 540, P_SCALE = 0.55;   // 바닥 높이, 상자 왼쪽 면, 1 N당 화살표 길이(px)
+const pMax = () => Math.round(P.w * PR[P.r].mu);
+const pSum = () => P.n * P.f;
+function pushChanged(){ P.anim = null; P.last = null; pushUI(); }
+segInit('segPF', v => { P.f = Number(v); pushChanged(); });
+segInit('segPW', v => { P.w = Number(v); pushChanged(); });
+segInit('segPR', v => { P.r = v; pushChanged(); });
+$('pMinus').addEventListener('click', () => { if (P.n > 1){ P.n--; pushChanged(); } });
+$('pPlus').addEventListener('click', () => { if (P.n < 4){ P.n++; pushChanged(); } else toast('4명까지 밀 수 있어요.'); });
+function setSeg(id, v){ $(id).querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === String(v))); }
+function pushSet(o){ Object.assign(P, o); setSeg('segPF', P.f); setSeg('segPW', P.w); setSeg('segPR', P.r); pushChanged(); }
+$('pushGo').addEventListener('click', () => {
+  const sum = pSum(), max = pMax(), moves = sum > max;
+  P.anim = { t0: performance.now(), sum, max, moves, dist: moves ? Math.min(300, 70 + (sum - max) * 1.3) : 0 };
+  P.last = null;
+});
+function pushFinish(a){
+  P.last = a;
+  pushLog.unshift({ n:P.n, f:P.f, w:P.w, r:P.r, sum:a.sum, fric: a.moves ? a.max : a.sum, moves:a.moves });
+  if (pushLog.length > 12) pushLog.pop();
+  renderPushLog(); renderQuests(); pushUI();
+}
+function pushUI(){
+  const sum = pSum(), box = $('pushSum'); box.textContent = '';
+  box.append('미는 힘의 합: ' + P.n + '명 × ' + P.f + ' N = ', el('b', { text: sum + ' N' }));
+  $('pCount').textContent = P.n + '명';
+}
+function renderPushLog(){
+  const box = $('pushLog'); box.textContent = '';
+  if (!pushLog.length){ box.append(el('div', { class:'empty', text:'상자를 밀어 보면 여기에 기록돼요.' })); return; }
+  const tb = el('table', { class:'records' });
+  tb.append(el('tr', {}, ['미는 힘', '상자', '바닥', '결과'].map(h => el('th', { text:h }))));
+  pushLog.forEach(r => tb.append(el('tr', {},
+    el('td', {}, el('b', { text:r.sum + ' N' }), el('div', { style:'font-size:14px;color:#7a8496', text:r.n + '명 × ' + r.f + ' N' })),
+    el('td', { text:r.w + ' N' }), el('td', { text:PR[r.r].name.replace(' 바닥', '') }),
+    el('td', { style:'font-weight:800;color:' + (r.moves ? 'var(--ok)' : 'var(--bad)'), text: r.moves ? '✅ 움직임' : '❌ 그대로' }))));
+  box.append(tb);
+}
+const QUESTS = [
+  { title:'① 혼자 밀기', set:{ n:1, f:100, w:500, r:'mid' },
+    how:'보통 바닥에 놓인 500 N 상자를 혼자서 100 N의 힘으로 밀어 보세요.',
+    done: L => L.some(r => r.n === 1 && r.f === 100 && r.w === 500 && r.r === 'mid'),
+    ok:'혼자서 100 N으로 밀었더니 상자가 움직이지 않았어요. 힘을 더 모아 볼까요? 친구를 불러 봐요!' },
+  { title:'② 친구와 함께', set:{ n:2, f:100, w:500, r:'mid' },
+    how:'[+] 버튼으로 친구를 한 명 더 불러서 둘이 함께(100 N + 100 N) 밀어 보세요.',
+    done: L => L.some(r => r.n >= 2 && r.w === 500 && r.r === 'mid' && r.moves),
+    ok:'둘이 힘을 모아 200 N으로 밀었더니 상자가 움직였어요! 움직이는 상자에는 운동 방향과 반대로 마찰력(150 N)이 작용해요.' },
+  { title:'③ 상자가 무거워지면', set:{ n:2, f:100, w:800, r:'mid' },
+    how:'상자 무게를 800 N으로 늘리고 둘이서 밀어 보세요. 안 움직이면 몇 명이 필요한지 사람을 늘려 보세요.',
+    done: L => L.some(r => r.w === 800 && r.r === 'mid' && !r.moves) && L.some(r => r.w === 800 && r.r === 'mid' && r.moves),
+    ok:'둘이서는 안 되고 3명(300 N)이 되어서야 움직였죠? 물체의 무게가 무거울수록 마찰력이 커져요.' },
+  { title:'④ 바닥이 매끄러워지면', set:{ n:1, f:100, w:500, r:'smooth' },
+    how:'다시 500 N 상자로, 바닥을 [매끄러운 바닥]으로 바꾸고 혼자서 100 N으로 밀어 보세요. ①과 비교해 보세요!',
+    done: L => L.some(r => r.n === 1 && r.f === 100 && r.w === 500 && r.r === 'smooth' && r.moves),
+    ok:'①에서는 안 움직였는데 혼자서도 밀렸어요! 접촉면이 매끄러울수록(거칠기가 작을수록) 마찰력이 작아져요.' }
+];
+let openQuest = 0, questAuto = true;
+function renderQuests(){
+  const box = $('pushQuests'); box.textContent = '';
+  const doneArr = QUESTS.map(q => q.done(pushLog));
+  if (questAuto){ const i = doneArr.indexOf(false); openQuest = i < 0 ? QUESTS.length - 1 : i; }
+  const row = el('div', { class:'mstep-row' });
+  QUESTS.forEach((q, i) => row.append(el('button', { class:'mstep' + (doneArr[i] ? ' done' : '') + (openQuest === i ? ' on' : ''), type:'button',
+    onclick:() => { questAuto = false; openQuest = i; renderQuests(); } }, (doneArr[i] ? '✅ ' : '') + q.title)));
+  box.append(el('div', { class:'mtop-h' }, el('h3', { text:'🎯 도전 (' + doneArr.filter(Boolean).length + '/' + QUESTS.length + ')' }), row));
+  const q = QUESTS[openQuest];
+  const left = el('div', {}, el('div', { class:'how', text:q.how }),
+    el('button', { class:'btn teal small qset', type:'button', onclick:() => pushSet(q.set) }, '🔧 이 상황으로 맞추기'));
+  const right = el('div');
+  if (doneArr[openQuest]) right.append(el('div', { class:'fb ok', style:'font-size:19px', text:q.ok }));
+  else right.append(el('div', { class:'fb', style:'background:#f6f1e8;color:#6b6457;font-size:19px', text:'👈 이 상황을 맞추고 [💪 밀어 보기!]를 눌러 보세요.' }));
+  box.append(el('div', { class:'mbody' }, left, right));
+  if (doneArr.every(Boolean)) box.append(el('div', { class:'textbook', style:'margin-top:12px', text:'🎉 모두 성공! 마찰력은 물체의 무게가 무거울수록, 접촉면이 거칠수록 커져요.' }));
+}
+
+function pushFloor(ctx){
+  const y = P_FLOOR;
+  if (P.r === 'mid'){ woodFloor(ctx, y); return; }
+  if (P.r === 'smooth'){
+    const g = ctx.createLinearGradient(0, y, 0, 480); g.addColorStop(0, '#f4f8fb'); g.addColorStop(1, '#cfdbe6');
+    ctx.fillStyle = g; ctx.fillRect(0, y, 1000, 480 - y);
+    ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.lineWidth = 3;
+    [[60, 18, 240], [420, 34, 200], [760, 14, 180]].forEach(([x, dy, w]) => { ctx.beginPath(); ctx.moveTo(x, y + dy); ctx.lineTo(x + w, y + dy - 6); ctx.stroke(); });
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, y, 1000, 4);
+    return;
+  }
+  ctx.fillStyle = '#7d7f86'; ctx.fillRect(0, y, 1000, 480 - y);
+  const R = rand(11);
+  for (let i = 0; i < 420; i++){ ctx.fillStyle = R() > 0.5 ? 'rgba(40,40,45,.6)' : 'rgba(220,220,225,.55)'; const r = 1.5 + R() * 3; ctx.beginPath(); ctx.arc(R() * 1000, y + 3 + R() * (480 - y - 6), r, 0, 7); ctx.fill(); }
+  ctx.fillStyle = '#55575d'; for (let x = 0; x < 1000; x += 9){ ctx.fillRect(x, y - 3, 5, 4); }
+}
+function pushBox(ctx, x, t){
+  const b = PW[P.w], top = P_FLOOR - b.h;
+  ctx.fillStyle = 'rgba(0,0,0,.14)'; ctx.beginPath(); ctx.ellipse(x + b.w / 2, P_FLOOR + 2, b.w / 2 + 14, 8, 0, 0, 7); ctx.fill();
+  if (P.w === 300){ boxDraw(ctx, x, top, b.w, b.h); }
+  else {
+    ctx.fillStyle = P.w === 800 ? '#8a5a2b' : '#b07a43'; rr(ctx, x, top, b.w, b.h, 6); ctx.fill();
+    ctx.strokeStyle = 'rgba(60,30,10,.45)'; ctx.lineWidth = 2;
+    for (let k = 1; k < 4; k++){ ctx.beginPath(); ctx.moveTo(x, top + k * b.h / 4); ctx.lineTo(x + b.w, top + k * b.h / 4); ctx.stroke(); }
+    ctx.strokeStyle = P.w === 800 ? '#4b4f57' : '#6d4520'; ctx.lineWidth = 12;
+    ctx.beginPath(); ctx.moveTo(x + 10, top + 10); ctx.lineTo(x + b.w - 10, top + b.h - 10); ctx.stroke();
+    ctx.strokeRect(x + 6, top + 6, b.w - 12, b.h - 12);
+  }
+  ctx.save(); ctx.font = '800 26px Pretendard, sans-serif'; ctx.textAlign = 'center';
+  ctx.fillStyle = '#fff'; ctx.strokeStyle = '#1d2433'; ctx.lineWidth = 2.5; rr(ctx, x + b.w / 2 - 80, top - 50, 160, 42, 12); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#1d2433'; ctx.fillText('무게 ' + P.w + ' N', x + b.w / 2, top - 20); ctx.restore();
+}
+const PCOL = [['#ff7a45','#2f4b7c','#3b2a20'], ['#2f9e8f','#3b3b58','#2b1d14'], ['#7c5cff','#1e3a5f','#5a3a22'], ['#e9b949','#4a4e69','#3b2a20']];
+function pushPeople(ctx, x, strain, t){
+  for (let i = P.n - 1; i >= 0; i--){
+    // 줄지어 밀기: 첫 사람은 상자를, 뒷사람은 앞사람 등을 밂
+    const hx = x - i * 118, hy = 293 + (i > 0 ? 10 : 0);
+    const sh = strain ? Math.sin(t / 35 + i) * 1.8 : 0;
+    ctx.save();
+    const dx = hx - 470, dy = hy - 309;
+    const [shirt, pants, hair] = PCOL[i];
+    person(ctx, movePose({ face:1, shirt, pants, hair, strain, sweat:strain, head:[447 + sh, 230], neck:[421 + sh, 268], hip:[360, 345],
+      armF:[[420, 282], [446, 300], [470, 318]], armB:[[414, 278], [442, 290], [470, 300]],
+      legF:[[360, 345], [398, 390], [402, 436]], legB:[[358, 345], [318, 392], [284, 436]] }, dx, dy));
+    ctx.restore();
+  }
+}
+function pushDraw(t){
+  const ctx = pctx;
+  sky(ctx, '#f1f6fb', '#e3ecf6');
+  ctx.fillStyle = 'rgba(0,0,0,.03)'; for (let x = 0; x < 1000; x += 50) ctx.fillRect(x, 0, 1, P_FLOOR);
+  pushFloor(ctx);
+  // 바닥 이름표
+  tag(ctx, 20, 34, PR[P.r].name, '#4a5468', { align:'left', size:19 });
+  tag(ctx, 980, 34, '미는 사람 ' + P.n + '명 · 한 사람 ' + P.f + ' N', '#2563eb', { align:'right', size:19 });
+  let off = 0, pushing = false, k = 0;
+  const a = P.anim;
+  if (a){
+    k = Math.min(1, (t - a.t0) / 2400); pushing = k < 1;
+    if (a.moves){ const kk = Math.max(0, (k - 0.15) / 0.85); off = a.dist * (1 - Math.pow(1 - kk, 2)); }
+    if (k >= 1 && !P.last) pushFinish(a);
+  }
+  const strain = !!a && !a.moves;
+  const shake = strain && pushing ? Math.sin(t / 25) * 2 : 0;
+  const bx = P_BOXL + off + shake;
+  pushBox(ctx, bx, t);
+  pushPeople(ctx, bx, strain && pushing, t);
+  if (a && a.moves && pushing && off > 5) speedLines(ctx, P_BOXL - 20 + off - 150, 150, 1, 3, 60);
+  // 힘 화살표
+  if (a){
+    const b = PW[P.w], my = P_FLOOR - b.h / 2;
+    const fric = a.moves ? a.max : a.sum;
+    arrow(ctx, bx, my + 30, bx + a.sum * P_SCALE, my + 30, '#2563eb', 10);
+    tag(ctx, bx + a.sum * P_SCALE / 2 + 20, my - 8, '미는 힘의 합 ' + a.sum + ' N', '#2563eb', { size:21 });
+    const fx = bx + b.w / 2;
+    if (a.moves){
+      arrow(ctx, fx, P_FLOOR + 4, fx - fric * P_SCALE, P_FLOOR + 4, '#e11d48', 10);
+      tag(ctx, fx - fric * P_SCALE / 2, P_FLOOR + 42, '마찰력 ' + fric + ' N', '#e11d48', { size:21 });
+    }
+    if (k >= 1){
+      tag(ctx, 500, 84, a.moves ? '✅ 움직였어요! 움직이는 상자에 마찰력 ' + a.max + ' N이 작용해요' : '❌ 상자가 움직이지 않아요. 힘이 더 필요해요!',
+        a.moves ? '#159957' : '#d6334a', { size:23, bg: a.moves ? '#e7f8ef' : '#ffecef' });
+    } else tag(ctx, 500, 84, '영차! 영차!', '#b83f16', { size:23, bg:'#fff3ea' });
+  } else {
+    tag(ctx, 500, 84, '[💪 밀어 보기!]를 눌러 보세요', '#b83f16', { size:22, bg:'#fff3ea' });
+  }
+}
+pushUI(); renderPushLog(); renderQuests();
+
+/* =====================================================================
    애니메이션 루프 · 시작
    ===================================================================== */
 let lastT = performance.now();
@@ -1902,6 +2096,7 @@ function loop(t){
       for (let i = 0; i < 6; i++) labStep(dt / 6);
       labDraw(t); labUI();
     } else if (S.active === 'dir' && tabOpen('dir')) dirDraw(t);
+    else if (S.active === 'push' && tabOpen('push')) pushDraw(t);
   }
   requestAnimationFrame(loop);
 }
