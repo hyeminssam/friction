@@ -65,6 +65,8 @@ button{cursor:pointer}
 .notice.info{background:#eef6ff;color:#1e4b8f;border:1px solid #cfe1fb}
 .entry-card .btn.primary{width:100%;font-size:22px;min-height:60px;margin-top:6px}
 .entry-teacher{margin-top:18px}
+.pubbox{margin-top:12px;border-top:2px dashed #e5ddd2;padding-top:10px}
+.pubbox.on{background:#eef6ff;border-radius:12px;padding:10px;border-top:none}
 .nickrow{display:flex;gap:8px}
 .nickrow input{flex:1;min-width:0}
 .btn.dice{white-space:nowrap;background:#fff7f2;border-color:#ffc9b3;color:var(--brandInk);font-size:18px}
@@ -312,8 +314,8 @@ footer.copy{text-align:center;color:#8d8778;font-size:13px;padding:14px 16px 18p
       <button class="btn primary" id="entryBtn" type="submit">입장하기</button>
     </form>
     <div id="pubEntry" class="hidden" style="margin-top:16px;border-top:2px dashed var(--line,#e2e8f0);padding-top:14px">
-      <button class="btn" id="pubBtn" type="button" style="width:100%">👀 로그인 없이 담벼락 구경하기</button>
-      <div class="help" style="text-align:center;margin-top:6px">보기만 할 수 있어요. 사례를 올리려면 입장해야 해요.</div>
+      <button class="btn" id="pubBtn" type="button" style="width:100%">👀 로그인 없이 둘러보기</button>
+      <div class="help" style="text-align:center;margin-top:6px">선생님이 열어 둔 활동만 볼 수 있어요. 기록은 저장되지 않고, 사례를 올리려면 입장해야 해요.</div>
     </div>
     <div class="entry-teacher"><button class="btn ghost small" id="entryTeacherBtn" type="button">👩‍🏫 교사 모드</button></div>
   </div>
@@ -637,7 +639,7 @@ async function rpc(fn, args){
 const S = {
   me: null,            // {sid, token}
   nick: '', cls: 0, pending: null, myPosts: 0,
-  tabs: { lab:true, dir:true, wall:true, pub:false },
+  tabs: { lab:true, dir:true, wall:true, pub_lab:false, pub_dir:false, pub_wall:false },
   progress: new Set(),
   active: 'lab',
   teacherPw: null,     // 교사 비밀번호 (메모리에만 보관)
@@ -729,7 +731,10 @@ async function startStudent(){
 async function refreshState(){
   if (S.pub){
     const r = await rpc('friction_public_status', {});
-    if (r.ok && !r.pub){ clearInterval(pollTimer); toast('로그인 없이 보기가 끝났어요. 입장해 주세요.'); setTimeout(() => location.reload(), 1500); }
+    if (!r.ok) return;
+    if (!r.pub){ clearInterval(pollTimer); toast('로그인 없이 보기가 끝났어요. 입장해 주세요.'); setTimeout(() => location.reload(), 1500); return; }
+    Object.assign(S.tabs, r.tabs); updateTabLocks();
+    if (!tabOpen(S.active)){ toast('선생님이 이 활동의 보기를 닫았어요.'); selectTab(firstOpenTab() || 'wall'); }
     return;
   }
   if (S.asTeacher){
@@ -764,11 +769,15 @@ function updateHeader(){
   if (S.asTeacher){ b.textContent = '👩‍🏫 교사 화면'; b.classList.add('teacher'); $('nickReqBtn').classList.add('hidden'); $('teacherBtn').textContent = '👩‍🏫 교사 메뉴'; }
   else { b.textContent = GRADE + '학년 ' + S.cls + '반 · ' + S.nick; b.classList.remove('teacher'); $('nickReqBtn').classList.remove('hidden'); $('teacherBtn').textContent = '👩‍🏫 교사 모드'; }
 }
-function tabOpen(t){ return S.asTeacher || !!S.tabs[tabKey(t)] || (t === 'wall' && !!S.tabs.pub); }
+function pubOpen(t){ return !!S.tabs['pub_' + tabKey(t)]; }   // 로그인 없이 보기에서 이 탭이 켜져 있는지
+function tabOpen(t){
+  if (S.pub) return pubOpen(t);
+  return S.asTeacher || !!S.tabs[tabKey(t)] || (t === 'wall' && !!S.tabs.pub_wall);
+}
 function updateTabLocks(){
   document.querySelectorAll('.tabbtn').forEach(b => {
-    const t = b.dataset.tab, open = !!S.tabs[tabKey(t)] || (t === 'wall' && !!S.tabs.pub);
-    b.classList.toggle('hidden', S.pub && t !== 'wall');
+    const t = b.dataset.tab, open = S.pub ? pubOpen(t) : (!!S.tabs[tabKey(t)] || (t === 'wall' && !!S.tabs.pub_wall));
+    b.classList.toggle('hidden', S.pub && !open);
     b.classList.toggle('locked', !open && !S.asTeacher);
     b.querySelector('.lock').classList.toggle('hidden', open);
     b.title = open ? '' : (S.asTeacher ? '학생에게는 닫혀 있어요' : '선생님이 아직 열지 않았어요');
@@ -1853,18 +1862,27 @@ async function loadOverview(){
   if (!r.ok){ if (r.err === 'wrong'){ toast(errMsg(r.err)); teacherLogout(); } return; }
   T.data = r; S.tabs = r.tabs; renderTeacher();
 }
-const TAB_INFO = { lab:['① 실험실 + ② 힘 모아 밀기', '교과서 164쪽 페트병 실험 + 미션, 사람 수·무게·바닥을 바꿔 상자 밀기'], dir:['③ 마찰력 방향 찾기', '7가지 상황에서 화살표 그리기'], wall:['④ 사례 담벼락', '크게/작게 하는 경우 올리기'], pub:['👀 로그인 없이 담벼락 보기', '시험 기간 등: 입장하지 않고 모든 반 담벼락을 볼 수 있어요 (글은 못 올림)'] };
+const TAB_INFO = { lab:['① 실험실 + ② 힘 모아 밀기', '교과서 164쪽 페트병 실험 + 미션, 사람 수·무게·바닥을 바꿔 상자 밀기'], dir:['③ 마찰력 방향 찾기', '7가지 상황에서 화살표 그리기'], wall:['④ 사례 담벼락', '크게/작게 하는 경우 올리기'] };
+const PUB_INFO = { lab:'실험실·힘 모아 밀기를 입장 없이 해 볼 수 있어요 (기록은 저장 안 됨)', dir:'방향 찾기를 입장 없이 연습할 수 있어요 (기록은 저장 안 됨)', wall:'모든 반 담벼락을 입장 없이 볼 수 있어요 (글은 못 올림)' };
 function renderTeacher(){
   const d = T.data; if (!d) return;
   // 탭 스위치
   const sw = $('tabSwitches'); sw.textContent = '';
   Object.entries(TAB_INFO).forEach(([k, [name, sub]]) => {
-    const open = !!d.tabs[k];
+    const open = !!d.tabs[k], pk = 'pub_' + k, pub = !!d.tabs[pk];
     sw.append(el('div', { class:'card' }, el('h4', { text:name }), el('div', { style:'color:var(--ink2)', text:sub }),
+      el('div', { style:'font-weight:800;margin-top:8px', text:'입장한 학생' }),
       el('div', { class:'bigswitch' },
-        el('button', { class:'open' + (open ? ' on' : ''), type:'button', onclick:() => setTab(k, true) }, k === 'pub' ? '👀 켜기' : '🔓 열기'),
-        el('button', { class:'close' + (!open ? ' on' : ''), type:'button', onclick:() => setTab(k, false) }, k === 'pub' ? '끄기' : '🔒 닫기')),
-      el('div', { style:'font-weight:800;color:' + (open ? 'var(--ok)' : 'var(--bad)'), text: k === 'pub' ? (open ? '지금 켜져 있어요 — 주소를 아는 누구나 볼 수 있어요' : '지금 꺼져 있어요') : (open ? '지금 학생에게 열려 있어요' : '지금 학생에게 닫혀 있어요') })));
+        el('button', { class:'open' + (open ? ' on' : ''), type:'button', onclick:() => setTab(k, true) }, '🔓 열기'),
+        el('button', { class:'close' + (!open ? ' on' : ''), type:'button', onclick:() => setTab(k, false) }, '🔒 닫기')),
+      el('div', { style:'font-weight:800;color:' + (open ? 'var(--ok)' : 'var(--bad)'), text: open ? '지금 학생에게 열려 있어요' : '지금 학생에게 닫혀 있어요' }),
+      el('div', { class:'pubbox' + (pub ? ' on' : '') },
+        el('div', { style:'font-weight:800', text:'👀 로그인 없이 보기' }),
+        el('div', { style:'color:var(--ink2);font-size:15px', text:PUB_INFO[k] }),
+        el('div', { class:'bigswitch' },
+          el('button', { class:'open' + (pub ? ' on' : ''), type:'button', onclick:() => setTab(pk, true) }, '👀 켜기'),
+          el('button', { class:'close' + (!pub ? ' on' : ''), type:'button', onclick:() => setTab(pk, false) }, '끄기')),
+        el('div', { style:'font-weight:800;color:' + (pub ? 'var(--ok)' : 'var(--ink2)'), text: pub ? '켜짐 — 주소를 아는 누구나 볼 수 있어요' : '꺼짐' }))));
   });
   // 닉네임 요청
   const reqs = d.students.filter(s => s.pending_nick);
@@ -1896,10 +1914,11 @@ function renderTeacher(){
   if (!list.length) tb.append(el('tr', {}, el('td', { colspan:'6', class:'empty', text:'아직 입장한 학생이 없어요.' })));
 }
 async function setTab(k, open){
-  if (k === 'pub' && open && !confirm('주소를 아는 사람은 누구나 입장하지 않고 담벼락(모든 반 사례·닉네임)을 볼 수 있어요. 글은 올릴 수 없어요.\n켤까요?')) return;
+  const isPub = k.startsWith('pub_'), base = isPub ? k.slice(4) : k;
+  if (isPub && open && !confirm('주소를 아는 사람은 누구나 입장하지 않고 "' + TAB_INFO[base][0] + '"을(를) 볼 수 있어요.' + (base === 'wall' ? ' (모든 반 사례·닉네임, 글은 못 올림)' : ' (기록은 저장되지 않음)') + '\n켤까요?')) return;
   const r = await rpc('friction_t_set_tab', { p_pw:S.teacherPw, p_tab:k, p_open:open });
   if (!r.ok){ toast(errMsg(r.err)); return; }
-  T.data.tabs = r.tabs; S.tabs = r.tabs; renderTeacher(); toast(TAB_INFO[k][0] + (k === 'pub' ? (open ? ' 켰어요.' : ' 껐어요.') : (open ? ' 열었어요.' : ' 닫았어요.')));
+  T.data.tabs = r.tabs; S.tabs = r.tabs; renderTeacher(); toast(TAB_INFO[base][0] + (isPub ? (open ? ' — 로그인 없이 보기를 켰어요.' : ' — 로그인 없이 보기를 껐어요.') : (open ? ' 열었어요.' : ' 닫았어요.')));
 }
 async function tNick(sid, action, v){
   const r = await rpc('friction_t_nick', { p_pw:S.teacherPw, p_sid:sid, p_action:action, p_new:v || null });
@@ -2140,11 +2159,11 @@ function startPublicCheck(){ checkPublic(); clearInterval(pubEntryTimer); pubEnt
 $('pubBtn').addEventListener('click', async () => {
   const r = await rpc('friction_public_status', {});
   if (!(r.ok && r.pub)){ $('pubEntry').classList.add('hidden'); toast('지금은 로그인 없이 볼 수 없어요.'); return; }
-  S.pub = true; S.tabs = { lab:false, dir:false, wall:false, pub:true };
+  S.pub = true; S.tabs = Object.assign({ lab:false, dir:false, wall:false }, r.tabs);
   clearInterval(pubEntryTimer);
   showScreen('main'); updateHeader(); updateTabLocks();
   clearInterval(pollTimer); pollTimer = setInterval(refreshState, 5000);
-  selectTab('wall');
+  selectTab(firstOpenTab() || 'wall');
 });
 $('loginBtn').addEventListener('click', () => location.reload());
 
