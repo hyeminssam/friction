@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
 <title>마찰력 탐구실</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -65,6 +66,8 @@ button{cursor:pointer}
 .notice.info{background:#eef6ff;color:#1e4b8f;border:1px solid #cfe1fb}
 .entry-card .btn.primary{width:100%;font-size:22px;min-height:60px;margin-top:6px}
 .entry-teacher{margin-top:18px}
+.pubbox{margin-top:12px;border-top:2px dashed #e5ddd2;padding-top:10px}
+.pubbox.on{background:#eef6ff;border-radius:12px;padding:10px;border-top:none}
 .nickrow{display:flex;gap:8px}
 .nickrow input{flex:1;min-width:0}
 .btn.dice{white-space:nowrap;background:#fff7f2;border-color:#ffc9b3;color:var(--brandInk);font-size:18px}
@@ -99,7 +102,7 @@ main{flex:1;width:100%;max-width:1400px;margin:0 auto;padding:18px 16px 30px;pos
 /* ---------- 탭1: 실험실 ---------- */
 .lab-grid{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(330px,1fr);gap:18px;align-items:start}
 .stage{padding:14px}
-.stage canvas{width:100%;height:auto;display:block;border-radius:14px;touch-action:none;background:#f6efe4}
+.stage canvas{width:100%;height:auto;display:block;border-radius:14px;touch-action:pan-y;background:#f6efe4}
 .ctrlrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
 .seg{display:inline-flex;background:#f3ece1;border-radius:14px;padding:4px;gap:4px;flex-wrap:wrap}
 .seg button{border:0;background:transparent;border-radius:11px;padding:9px 14px;font-weight:800;font-size:18px;color:var(--ink2);min-height:46px}
@@ -311,6 +314,10 @@ footer.copy{text-align:center;color:#8d8778;font-size:13px;padding:14px 16px 18p
       <div id="entryErr" class="notice bad hidden"></div>
       <button class="btn primary" id="entryBtn" type="submit">입장하기</button>
     </form>
+    <div id="pubEntry" class="hidden" style="margin-top:16px;border-top:2px dashed var(--line,#e2e8f0);padding-top:14px">
+      <button class="btn" id="pubBtn" type="button" style="width:100%">👀 로그인 없이 둘러보기</button>
+      <div class="help" style="text-align:center;margin-top:6px">선생님이 열어 둔 활동만 볼 수 있어요. 기록은 저장되지 않고, 사례를 올리려면 입장해야 해요.</div>
+    </div>
     <div class="entry-teacher"><button class="btn ghost small" id="entryTeacherBtn" type="button">👩‍🏫 교사 모드</button></div>
   </div>
 </section>
@@ -328,6 +335,7 @@ footer.copy{text-align:center;color:#8d8778;font-size:13px;padding:14px 16px 18p
     <div class="me">
       <span class="me-badge" id="meBadge"></span>
       <button class="btn small ghost" id="nickReqBtn" type="button">닉네임 변경 요청</button>
+      <button class="btn small ghost hidden" id="loginBtn" type="button">🔑 입장하기</button>
       <button class="btn small ghost" id="teacherBtn" type="button">👩‍🏫 교사 모드</button>
     </div>
   </div></div>
@@ -461,6 +469,7 @@ footer.copy{text-align:center;color:#8d8778;font-size:13px;padding:14px 16px 18p
           <button class="btn small" id="wallRefresh" type="button">↻ 새로고침</button>
         </div>
       </div>
+      <div id="pubNote" class="wall-lock hidden">👀 보기 전용 화면이에요. 우리 학교 친구들의 사례이니, 다른 학교 친구에게 주소를 공유하지 말아 주세요.</div>
       <div id="wallLock" class="wall-lock hidden">✋ 내 사례를 먼저 1개 올리면 모든 반 친구들의 사례를 볼 수 있어요!</div>
       <div class="wall" id="wallStudent"></div>
     </div>
@@ -641,11 +650,12 @@ async function rpc(fn, args){
 const S = {
   me: null,            // {sid, token}
   nick: '', cls: 0, pending: null, myPosts: 0,
-  tabs: { lab:true, dir:true, wall:true },
+  tabs: { lab:true, dir:true, wall:true, pub_lab:false, pub_dir:false, pub_wall:false },
   progress: new Set(),
   active: 'lab',
   teacherPw: null,     // 교사 비밀번호 (메모리에만 보관)
   asTeacher: false,    // 교사가 수업 화면을 보는 중
+  pub: false,          // 로그인 없이 담벼락 보는 중 (보기 전용)
   wallCls: 0, tWallCls: 0, tStuCls: 0
 };
 const LS_KEY = 'friction_me_v1';
@@ -732,6 +742,14 @@ async function startStudent(){
   selectTab(firstOpenTab() || 'lab');
 }
 async function refreshState(){
+  if (S.pub){
+    const r = await rpc('friction_public_status', {});
+    if (!r.ok) return;
+    if (!r.pub){ clearInterval(pollTimer); toast('로그인 없이 보기가 끝났어요. 입장해 주세요.'); setTimeout(() => location.reload(), 1500); return; }
+    Object.assign(S.tabs, r.tabs); updateTabLocks();
+    if (!tabOpen(S.active)){ toast('선생님이 이 활동의 보기를 닫았어요.'); selectTab(firstOpenTab() || 'wall'); }
+    return;
+  }
   if (S.asTeacher){
     const r = await rpc('friction_t_overview', { p_pw:S.teacherPw });
     if (r.ok){ S.tabs = r.tabs; T.data = r; updateTabLocks(); }
@@ -756,16 +774,23 @@ async function refreshState(){
   if (prevPosts !== S.myPosts && S.active === 'wall') loadWall();
 }
 const tabKey = t => t === 'push' ? 'lab' : t;   // 힘 모아 밀기는 실험실과 함께 열고 닫힘
-function firstOpenTab(){ return ['lab','dir','wall'].find(t => S.tabs[t]); }
+function firstOpenTab(){ return ['lab','dir','wall'].find(t => tabOpen(t)); }
 function updateHeader(){
   const b = $('meBadge');
+  $('loginBtn').classList.toggle('hidden', !S.pub);
+  if (S.pub){ b.textContent = '👀 보기 전용'; b.classList.remove('teacher'); $('nickReqBtn').classList.add('hidden'); $('teacherBtn').textContent = '👩‍🏫 교사 모드'; return; }
   if (S.asTeacher){ b.textContent = '👩‍🏫 교사 화면'; b.classList.add('teacher'); $('nickReqBtn').classList.add('hidden'); $('teacherBtn').textContent = '👩‍🏫 교사 메뉴'; }
   else { b.textContent = GRADE + '학년 ' + S.cls + '반 · ' + S.nick; b.classList.remove('teacher'); $('nickReqBtn').classList.remove('hidden'); $('teacherBtn').textContent = '👩‍🏫 교사 모드'; }
 }
-function tabOpen(t){ return S.asTeacher || !!S.tabs[tabKey(t)]; }
+function pubOpen(t){ return !!S.tabs['pub_' + tabKey(t)]; }   // 로그인 없이 보기에서 이 탭이 켜져 있는지
+function tabOpen(t){
+  if (S.pub) return pubOpen(t);
+  return S.asTeacher || !!S.tabs[tabKey(t)] || (t === 'wall' && !!S.tabs.pub_wall);
+}
 function updateTabLocks(){
   document.querySelectorAll('.tabbtn').forEach(b => {
-    const t = b.dataset.tab, open = !!S.tabs[tabKey(t)];
+    const t = b.dataset.tab, open = S.pub ? pubOpen(t) : (!!S.tabs[tabKey(t)] || (t === 'wall' && !!S.tabs.pub_wall));
+    b.classList.toggle('hidden', S.pub && !open);
     b.classList.toggle('locked', !open && !S.asTeacher);
     b.querySelector('.lock').classList.toggle('hidden', open);
     b.title = open ? '' : (S.asTeacher ? '학생에게는 닫혀 있어요' : '선생님이 아직 열지 않았어요');
@@ -1758,18 +1783,20 @@ async function loadWall(){
   try {
     chipsInit('wallChips', () => S.wallCls, v => { S.wallCls = v; loadWall(); });
     const teacherView = S.asTeacher;
-    $('addRow').classList.toggle('hidden', teacherView);
+    $('addRow').classList.toggle('hidden', teacherView || S.pub || !S.tabs.wall);
+    $('pubNote').classList.toggle('hidden', !S.pub);
     let r;
-    if (teacherView) r = await rpc('friction_t_wall', { p_pw:S.teacherPw, p_cls:S.wallCls });
+    if (S.pub){ r = await rpc('friction_public_wall', { p_cls:S.wallCls }); if (!r.ok && r.err === 'not_public'){ location.reload(); return; } }
+    else if (teacherView) r = await rpc('friction_t_wall', { p_pw:S.teacherPw, p_cls:S.wallCls });
     else r = await rpc('friction_wall', { p_sid:S.me.sid, p_token:S.me.token, p_cls:S.wallCls });
     if (!r.ok){ if (r.err === 'closed'){ S.tabs.wall = false; updateTabLocks(); } else toast(errMsg(r.err)); return; }
     let posts = r.posts || [];
-    if (!teacherView && S.wallCls) posts = posts.filter(p => p.cls === S.wallCls);
-    $('wallLock').classList.toggle('hidden', teacherView || r.can_see_all);
-    $('wallChips').classList.toggle('hidden', !teacherView && !r.can_see_all);
+    if (!teacherView && !S.pub && S.wallCls) posts = posts.filter(p => p.cls === S.wallCls);
+    $('wallLock').classList.toggle('hidden', teacherView || S.pub || r.can_see_all);
+    $('wallChips').classList.toggle('hidden', !teacherView && !S.pub && !r.can_see_all);
     const mine = (r.posts || []).filter(p => p.mine).length;
     if (!teacherView) S.myPosts = Math.max(S.myPosts, mine);
-    $('myCount').textContent = teacherView ? '' : '내 사례 ' + mine + ' / 4';
+    $('myCount').textContent = (teacherView || S.pub) ? '' : '내 사례 ' + mine + ' / 4';
     renderWall($('wallStudent'), posts, { teacher: teacherView });
   } finally { wallBusy = false; }
 }
@@ -1789,7 +1816,7 @@ function setCat(c){
 }
 document.querySelectorAll('#catPick button').forEach(b => b.addEventListener('click', () => setCat(b.dataset.cat)));
 function openPostForm(){
-  if (!S.me || S.asTeacher) return;
+  if (!S.me || S.asTeacher || S.pub) return;
   if (S.myPosts >= 4){ toast(errMsg('too_many')); return; }
   showMsg('postErr', '');
   openModal('mPost');
@@ -1830,7 +1857,8 @@ $('pwGo').addEventListener('click', async () => {
   S.teacherPw = pw; closeModal('mTeacher'); openTeacher();
 });
 function openTeacher(){
-  showScreen('teacher'); clearInterval(pollTimer);
+  if (S.pub){ S.wasPub = true; S.pub = false; }
+  showScreen('teacher'); clearInterval(pollTimer); clearInterval(pubEntryTimer);
   tShow(T.view); loadOverview();
   clearInterval(T.timer); T.timer = setInterval(() => { if (!$('teacher').classList.contains('hidden')) loadOverview(); }, 6000);
 }
@@ -1848,17 +1876,26 @@ async function loadOverview(){
   T.data = r; S.tabs = r.tabs; renderTeacher();
 }
 const TAB_INFO = { lab:['① 실험실 + ② 힘 모아 밀기', '교과서 164쪽 페트병 실험 + 미션, 사람 수·무게·바닥을 바꿔 상자 밀기'], dir:['③ 마찰력 방향 찾기', '7가지 상황에서 화살표 그리기'], wall:['④ 사례 담벼락', '크게/작게 하는 경우 올리기'] };
+const PUB_INFO = { lab:'실험실·힘 모아 밀기를 입장 없이 해 볼 수 있어요 (기록은 저장 안 됨)', dir:'방향 찾기를 입장 없이 연습할 수 있어요 (기록은 저장 안 됨)', wall:'모든 반 담벼락을 입장 없이 볼 수 있어요 (글은 못 올림)' };
 function renderTeacher(){
   const d = T.data; if (!d) return;
   // 탭 스위치
   const sw = $('tabSwitches'); sw.textContent = '';
   Object.entries(TAB_INFO).forEach(([k, [name, sub]]) => {
-    const open = !!d.tabs[k];
+    const open = !!d.tabs[k], pk = 'pub_' + k, pub = !!d.tabs[pk];
     sw.append(el('div', { class:'card' }, el('h4', { text:name }), el('div', { style:'color:var(--ink2)', text:sub }),
+      el('div', { style:'font-weight:800;margin-top:8px', text:'입장한 학생' }),
       el('div', { class:'bigswitch' },
         el('button', { class:'open' + (open ? ' on' : ''), type:'button', onclick:() => setTab(k, true) }, '🔓 열기'),
         el('button', { class:'close' + (!open ? ' on' : ''), type:'button', onclick:() => setTab(k, false) }, '🔒 닫기')),
-      el('div', { style:'font-weight:800;color:' + (open ? 'var(--ok)' : 'var(--bad)'), text: open ? '지금 학생에게 열려 있어요' : '지금 학생에게 닫혀 있어요' })));
+      el('div', { style:'font-weight:800;color:' + (open ? 'var(--ok)' : 'var(--bad)'), text: open ? '지금 학생에게 열려 있어요' : '지금 학생에게 닫혀 있어요' }),
+      el('div', { class:'pubbox' + (pub ? ' on' : '') },
+        el('div', { style:'font-weight:800', text:'👀 로그인 없이 보기' }),
+        el('div', { style:'color:var(--ink2);font-size:15px', text:PUB_INFO[k] }),
+        el('div', { class:'bigswitch' },
+          el('button', { class:'open' + (pub ? ' on' : ''), type:'button', onclick:() => setTab(pk, true) }, '👀 켜기'),
+          el('button', { class:'close' + (!pub ? ' on' : ''), type:'button', onclick:() => setTab(pk, false) }, '끄기')),
+        el('div', { style:'font-weight:800;color:' + (pub ? 'var(--ok)' : 'var(--ink2)'), text: pub ? '켜짐 — 주소를 아는 누구나 볼 수 있어요' : '꺼짐' }))));
   });
   // 닉네임 요청
   const reqs = d.students.filter(s => s.pending_nick);
@@ -1892,9 +1929,11 @@ function renderTeacher(){
   if (!list.length) tb.append(el('tr', {}, el('td', { colspan:'7', class:'empty', text:'아직 입장한 학생이 없어요.' })));
 }
 async function setTab(k, open){
+  const isPub = k.startsWith('pub_'), base = isPub ? k.slice(4) : k;
+  if (isPub && open && !confirm('주소를 아는 사람은 누구나 입장하지 않고 "' + TAB_INFO[base][0] + '"을(를) 볼 수 있어요.' + (base === 'wall' ? ' (모든 반 사례·닉네임, 글은 못 올림)' : ' (기록은 저장되지 않음)') + '\n켤까요?')) return;
   const r = await rpc('friction_t_set_tab', { p_pw:S.teacherPw, p_tab:k, p_open:open });
   if (!r.ok){ toast(errMsg(r.err)); return; }
-  T.data.tabs = r.tabs; S.tabs = r.tabs; renderTeacher(); toast(TAB_INFO[k][0] + (open ? ' 열었어요.' : ' 닫았어요.'));
+  T.data.tabs = r.tabs; S.tabs = r.tabs; renderTeacher(); toast(TAB_INFO[base][0] + (isPub ? (open ? ' — 로그인 없이 보기를 켰어요.' : ' — 로그인 없이 보기를 껐어요.') : (open ? ' 열었어요.' : ' 닫았어요.')));
 }
 let tNickTarget = null;
 function openTNick(s, random){
@@ -1931,6 +1970,7 @@ async function loadTeacherWall(){
 $('tWallRefresh').addEventListener('click', loadTeacherWall);
 $('tPresent').addEventListener('click', () => { T.present = !T.present; $('wallTeacher').classList.toggle('present', T.present); $('tPresent').textContent = T.present ? '🖥️ 보통 크기' : '🖥️ 크게 보기'; loadTeacherWall(); });
 $('tToClass').addEventListener('click', () => {
+  if (S.pub){ S.wasPub = true; S.pub = false; }
   S.asTeacher = true; clearInterval(T.timer);
   showScreen('main'); updateHeader(); updateTabLocks();
   clearInterval(pollTimer); pollTimer = setInterval(refreshState, 6000);
@@ -1939,7 +1979,8 @@ $('tToClass').addEventListener('click', () => {
 $('tLogout').addEventListener('click', teacherLogout);
 function teacherLogout(){
   S.teacherPw = null; S.asTeacher = false; clearInterval(T.timer); T.data = null;
-  if (S.me) startStudent(); else { showScreen('entry'); }
+  if (S.wasPub){ location.reload(); return; }
+  if (S.me) startStudent(); else { showScreen('entry'); startPublicCheck(); }
 }
 
 /* =====================================================================
@@ -2138,8 +2179,28 @@ window.addEventListener('resize', () => showPane());
 selectSc(0); renderMissions();
 requestAnimationFrame(loop);
 
+/* ---------- 로그인 없이 담벼락 보기 ---------- */
+let pubEntryTimer = null;
+async function checkPublic(){
+  if ($('entry').classList.contains('hidden')) return;
+  const r = await rpc('friction_public_status', {});
+  $('pubEntry').classList.toggle('hidden', !(r.ok && r.pub));
+}
+function startPublicCheck(){ checkPublic(); clearInterval(pubEntryTimer); pubEntryTimer = setInterval(checkPublic, 5000); }
+$('pubBtn').addEventListener('click', async () => {
+  const r = await rpc('friction_public_status', {});
+  if (!(r.ok && r.pub)){ $('pubEntry').classList.add('hidden'); toast('지금은 로그인 없이 볼 수 없어요.'); return; }
+  S.pub = true; S.tabs = Object.assign({ lab:false, dir:false, wall:false }, r.tabs);
+  clearInterval(pubEntryTimer);
+  showScreen('main'); updateHeader(); updateTabLocks();
+  clearInterval(pollTimer); pollTimer = setInterval(refreshState, 5000);
+  selectTab(firstOpenTab() || 'wall');
+});
+$('loginBtn').addEventListener('click', () => location.reload());
+
 (async function boot(){
   if (!configOk){ showScreen('entry'); return; }
+  startPublicCheck();
   const me = loadMe();
   if (me){
     S.me = me;
