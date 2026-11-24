@@ -65,8 +65,6 @@ button{cursor:pointer}
 .notice.info{background:#eef6ff;color:#1e4b8f;border:1px solid #cfe1fb}
 .entry-card .btn.primary{width:100%;font-size:22px;min-height:60px;margin-top:6px}
 .entry-teacher{margin-top:18px}
-.pubbox{margin-top:12px;border-top:2px dashed #e5ddd2;padding-top:10px}
-.pubbox.on{background:#eef6ff;border-radius:12px;padding:10px;border-top:none}
 .nickrow{display:flex;gap:8px}
 .nickrow input{flex:1;min-width:0}
 .btn.dice{white-space:nowrap;background:#fff7f2;border-color:#ffc9b3;color:var(--brandInk);font-size:18px}
@@ -313,10 +311,6 @@ footer.copy{text-align:center;color:#8d8778;font-size:13px;padding:14px 16px 18p
       <div id="entryErr" class="notice bad hidden"></div>
       <button class="btn primary" id="entryBtn" type="submit">입장하기</button>
     </form>
-    <div id="pubEntry" class="hidden" style="margin-top:16px;border-top:2px dashed var(--line,#e2e8f0);padding-top:14px">
-      <button class="btn" id="pubBtn" type="button" style="width:100%">👀 로그인 없이 둘러보기</button>
-      <div class="help" style="text-align:center;margin-top:6px">선생님이 열어 둔 활동만 볼 수 있어요. 기록은 저장되지 않고, 사례를 올리려면 입장해야 해요.</div>
-    </div>
     <div class="entry-teacher"><button class="btn ghost small" id="entryTeacherBtn" type="button">👩‍🏫 교사 모드</button></div>
   </div>
 </section>
@@ -334,7 +328,6 @@ footer.copy{text-align:center;color:#8d8778;font-size:13px;padding:14px 16px 18p
     <div class="me">
       <span class="me-badge" id="meBadge"></span>
       <button class="btn small ghost" id="nickReqBtn" type="button">닉네임 변경 요청</button>
-      <button class="btn small ghost hidden" id="loginBtn" type="button">🔑 입장하기</button>
       <button class="btn small ghost" id="teacherBtn" type="button">👩‍🏫 교사 모드</button>
     </div>
   </div></div>
@@ -468,7 +461,6 @@ footer.copy{text-align:center;color:#8d8778;font-size:13px;padding:14px 16px 18p
           <button class="btn small" id="wallRefresh" type="button">↻ 새로고침</button>
         </div>
       </div>
-      <div id="pubNote" class="wall-lock hidden">👀 보기 전용 화면이에요. 우리 학교 친구들의 사례이니, 다른 학교 친구에게 주소를 공유하지 말아 주세요.</div>
       <div id="wallLock" class="wall-lock hidden">✋ 내 사례를 먼저 1개 올리면 모든 반 친구들의 사례를 볼 수 있어요!</div>
       <div class="wall" id="wallStudent"></div>
     </div>
@@ -498,7 +490,7 @@ footer.copy{text-align:center;color:#8d8778;font-size:13px;padding:14px 16px 18p
     <div id="t-students" class="hidden">
       <div class="wall-top"><div class="chips" id="tStuChips"></div><span id="tStuSum" style="font-weight:800;color:var(--ink2)"></span></div>
       <div style="overflow:auto"><table class="ttable" id="tStuTable"></table></div>
-      <p style="color:var(--muted);font-size:16px">실험 미션 ①~④, 방향 찾기 1~7 중 맞힌 것이 초록색으로 표시돼요. '기록 삭제'를 누르면 그 학생이 다시 입장할 수 있어요(올린 사례도 함께 지워져요).</p>
+      <p style="color:var(--muted);font-size:16px">실험 미션 ①~④, 밀기 도전 ①~⑤, 방향 찾기 1~7 중 맞힌 것이 초록색으로 표시돼요. '기록 삭제'를 누르면 그 학생이 다시 입장할 수 있어요(올린 사례도 함께 지워져요).</p>
     </div>
     <div id="t-nicks" class="hidden"><div id="nickList"></div></div>
     <div id="t-wall" class="hidden">
@@ -532,6 +524,16 @@ footer.copy{text-align:center;color:#8d8778;font-size:13px;padding:14px 16px 18p
   <div class="field"><label for="inNewNick">새 닉네임</label><div class="nickrow"><input id="inNewNick" maxlength="10" placeholder="2~10글자"><button class="btn dice" type="button" data-target="inNewNick">🎲 랜덤</button></div></div>
   <div id="nickErr" class="notice bad hidden"></div>
   <div class="modal-actions"><button class="btn" data-close type="button">취소</button><button class="btn primary" id="nickSend" type="button">요청 보내기</button></div>
+</div></div>
+
+<div class="modal hidden" id="mTNick"><div class="modal-box">
+  <button class="modal-x" data-close type="button" aria-label="닫기">✕</button>
+  <h3>닉네임 바꾸기</h3>
+  <p id="tNickInfo" style="color:var(--ink2);font-size:20px"></p>
+  <div class="field"><label for="inTNick">새 닉네임</label><div class="nickrow"><input id="inTNick" maxlength="10" placeholder="2~10글자"><button class="btn dice" type="button" data-target="inTNick">🎲 랜덤 닉네임</button></div>
+    <div class="help">🎲를 누를 때마다 새 이름이 나와요. 마음에 들면 [바꾸기]를 누르세요.</div></div>
+  <div id="tNickErr" class="notice bad hidden"></div>
+  <div class="modal-actions"><button class="btn" data-close type="button">취소</button><button class="btn dark" id="tNickSave" type="button">바꾸기</button></div>
 </div></div>
 
 <div class="modal hidden" id="mTeacher"><div class="modal-box">
@@ -606,7 +608,7 @@ $('copy').append(
 
 const ERR = {
   bad_sid: '학번을 다시 확인해 주세요. (예: ' + GRADE + '학년 6반 12번 → ' + GRADE + '0612)',
-  bad_nick: '닉네임은 2~10글자, 한글·영어·숫자만 쓸 수 있어요. (띄어쓰기·특수문자 X)',
+  bad_nick: '닉네임은 2~10글자, 한글·영어·숫자만 쓸 수 있어요. (띄어쓰기·특수문자 X, 엄마·아빠 같은 가족 호칭과 정치인 이름도 안 돼요)',
   other_nick: '이 학번은 다른 닉네임으로 이미 입장했어요. 처음에 쓴 닉네임을 입력하세요. 기억나지 않으면 선생님께 말씀드려요.',
   nick_taken: '다른 친구가 이미 쓰고 있는 닉네임이에요. 🎲 버튼을 다시 눌러 다른 닉네임을 골라 주세요.',
   same_nick: '지금 쓰는 닉네임과 같아요.',
@@ -639,12 +641,11 @@ async function rpc(fn, args){
 const S = {
   me: null,            // {sid, token}
   nick: '', cls: 0, pending: null, myPosts: 0,
-  tabs: { lab:true, dir:true, wall:true, pub_lab:false, pub_dir:false, pub_wall:false },
+  tabs: { lab:true, dir:true, wall:true },
   progress: new Set(),
   active: 'lab',
   teacherPw: null,     // 교사 비밀번호 (메모리에만 보관)
   asTeacher: false,    // 교사가 수업 화면을 보는 중
-  pub: false,          // 로그인 없이 담벼락 보는 중 (보기 전용)
   wallCls: 0, tWallCls: 0, tStuCls: 0
 };
 const LS_KEY = 'friction_me_v1';
@@ -657,10 +658,12 @@ function saveMe(v){ try { if (v) localStorage.setItem(LS_KEY, JSON.stringify(v))
 
 function canSave(){ return !!S.me && !S.asTeacher; }
 
-/* ---------- 랜덤 닉네임: 놀림거리가 되지 않는 긍정적인 말 + 동물 (돼지 등 제외) ---------- */
+/* ---------- 랜덤 닉네임: 놀림거리가 되지 않는 긍정적인 말 + 동물 (돼지·부엉이·코알라 등 제외) ---------- */
+const NICK_BAN = /(엄마|아빠|어머니|아버지|마더|파더|mother|father|mom|dad|김정은|정은|김정일|김일성|히틀러|윤석열|이재명|문재인|박근혜|트럼프)/i;   // 가족 호칭·정치적인 닉네임 금지
+const nickOk = n => /^[가-힣ㄱ-ㅎㅏ-ㅣA-Za-z0-9_]{2,10}$/.test(n) && !NICK_BAN.test(n);
 const NICK_ADJ = ['노래하는','춤추는','용감한','반짝이는','씩씩한','슬기로운','날쌘','신나는','똑똑한','친절한','행복한','빛나는',
   '탐구하는','꿈꾸는','힘찬','멋진','상냥한','발명하는','별보는','책읽는','달리는','날아가는','실험하는','웃음짓는','용기있는','지혜로운','다정한','당당한'];
-const NICK_ANI = ['기린','펭귄','수달','고래','돌고래','판다','여우','사슴','토끼','다람쥐','부엉이','독수리','코알라','해달','알파카',
+const NICK_ANI = ['기린','펭귄','수달','고래','돌고래','판다','여우','사슴','토끼','다람쥐','독수리','해달','알파카',
   '고양이','강아지','사자','호랑이','치타','앵무새','거북이','해마','비버','라쿤','북극곰','표범','물개','두루미','고슴도치','카멜레온'];
 function randomNick(){
   for (let i = 0; i < 20; i++){
@@ -693,7 +696,7 @@ $('entryForm').addEventListener('submit', e => {
   if (!/^\d{5}$/.test(sidTxt)){ showMsg('entryErr', '학번은 숫자 5자리로 써 주세요. (예: ' + GRADE + '0612)'); return; }
   const sid = Number(sidTxt), g = Math.floor(sid / 10000), c = Math.floor(sid / 100) % 100, n = sid % 100;
   if (g !== GRADE || c < 1 || c > CLASS_COUNT || n < 1){ showMsg('entryErr', errMsg('bad_sid')); return; }
-  if (!/^[가-힣ㄱ-ㅎㅏ-ㅣA-Za-z0-9_]{2,10}$/.test(nick)){ showMsg('entryErr', errMsg('bad_nick')); return; }
+  if (!nickOk(nick)){ showMsg('entryErr', errMsg('bad_nick')); return; }
   pendingEntry = { sid, nick };
   $('confirmText').textContent = '';
   $('confirmText').append(GRADE + '학년 ' + c + '반 ' + n + '번 (', el('b', {text:sidTxt}), ')', el('br'), '닉네임: ', el('b', {text:nick}));
@@ -729,14 +732,6 @@ async function startStudent(){
   selectTab(firstOpenTab() || 'lab');
 }
 async function refreshState(){
-  if (S.pub){
-    const r = await rpc('friction_public_status', {});
-    if (!r.ok) return;
-    if (!r.pub){ clearInterval(pollTimer); toast('로그인 없이 보기가 끝났어요. 입장해 주세요.'); setTimeout(() => location.reload(), 1500); return; }
-    Object.assign(S.tabs, r.tabs); updateTabLocks();
-    if (!tabOpen(S.active)){ toast('선생님이 이 활동의 보기를 닫았어요.'); selectTab(firstOpenTab() || 'wall'); }
-    return;
-  }
   if (S.asTeacher){
     const r = await rpc('friction_t_overview', { p_pw:S.teacherPw });
     if (r.ok){ S.tabs = r.tabs; T.data = r; updateTabLocks(); }
@@ -757,27 +752,20 @@ async function refreshState(){
   const before = S.progress.size;
   (r.progress || []).forEach(k => S.progress.add(k));
   updateHeader(); updateTabLocks();
-  if (S.progress.size !== before){ renderMissions(); renderScList(); }
+  if (S.progress.size !== before){ renderMissions(); renderScList(); renderQuests(); }
   if (prevPosts !== S.myPosts && S.active === 'wall') loadWall();
 }
 const tabKey = t => t === 'push' ? 'lab' : t;   // 힘 모아 밀기는 실험실과 함께 열고 닫힘
-function firstOpenTab(){ return ['lab','dir','wall'].find(t => tabOpen(t)); }
+function firstOpenTab(){ return ['lab','dir','wall'].find(t => S.tabs[t]); }
 function updateHeader(){
   const b = $('meBadge');
-  $('loginBtn').classList.toggle('hidden', !S.pub);
-  if (S.pub){ b.textContent = '👀 보기 전용'; b.classList.remove('teacher'); $('nickReqBtn').classList.add('hidden'); $('teacherBtn').textContent = '👩‍🏫 교사 모드'; return; }
   if (S.asTeacher){ b.textContent = '👩‍🏫 교사 화면'; b.classList.add('teacher'); $('nickReqBtn').classList.add('hidden'); $('teacherBtn').textContent = '👩‍🏫 교사 메뉴'; }
   else { b.textContent = GRADE + '학년 ' + S.cls + '반 · ' + S.nick; b.classList.remove('teacher'); $('nickReqBtn').classList.remove('hidden'); $('teacherBtn').textContent = '👩‍🏫 교사 모드'; }
 }
-function pubOpen(t){ return !!S.tabs['pub_' + tabKey(t)]; }   // 로그인 없이 보기에서 이 탭이 켜져 있는지
-function tabOpen(t){
-  if (S.pub) return pubOpen(t);
-  return S.asTeacher || !!S.tabs[tabKey(t)] || (t === 'wall' && !!S.tabs.pub_wall);
-}
+function tabOpen(t){ return S.asTeacher || !!S.tabs[tabKey(t)]; }
 function updateTabLocks(){
   document.querySelectorAll('.tabbtn').forEach(b => {
-    const t = b.dataset.tab, open = S.pub ? pubOpen(t) : (!!S.tabs[tabKey(t)] || (t === 'wall' && !!S.tabs.pub_wall));
-    b.classList.toggle('hidden', S.pub && !open);
+    const t = b.dataset.tab, open = !!S.tabs[tabKey(t)];
     b.classList.toggle('locked', !open && !S.asTeacher);
     b.querySelector('.lock').classList.toggle('hidden', open);
     b.title = open ? '' : (S.asTeacher ? '학생에게는 닫혀 있어요' : '선생님이 아직 열지 않았어요');
@@ -811,7 +799,7 @@ $('nickReqBtn').addEventListener('click', () => {
 });
 $('nickSend').addEventListener('click', async () => {
   const v = $('inNewNick').value.trim();
-  if (!/^[가-힣ㄱ-ㅎㅏ-ㅣA-Za-z0-9_]{2,10}$/.test(v)){ showMsg('nickErr', errMsg('bad_nick')); return; }
+  if (!nickOk(v)){ showMsg('nickErr', errMsg('bad_nick')); return; }
   const r = await rpc('friction_request_nick', { p_sid:S.me.sid, p_token:S.me.token, p_new:v });
   if (!r.ok){ showMsg('nickErr', errMsg(r.err)); return; }
   S.pending = v; closeModal('mNick'); toast('요청을 보냈어요. 선생님이 승인하면 바뀌어요.');
@@ -1770,20 +1758,18 @@ async function loadWall(){
   try {
     chipsInit('wallChips', () => S.wallCls, v => { S.wallCls = v; loadWall(); });
     const teacherView = S.asTeacher;
-    $('addRow').classList.toggle('hidden', teacherView || S.pub || !S.tabs.wall);
-    $('pubNote').classList.toggle('hidden', !S.pub);
+    $('addRow').classList.toggle('hidden', teacherView);
     let r;
-    if (S.pub){ r = await rpc('friction_public_wall', { p_cls:S.wallCls }); if (!r.ok && r.err === 'not_public'){ location.reload(); return; } }
-    else if (teacherView) r = await rpc('friction_t_wall', { p_pw:S.teacherPw, p_cls:S.wallCls });
+    if (teacherView) r = await rpc('friction_t_wall', { p_pw:S.teacherPw, p_cls:S.wallCls });
     else r = await rpc('friction_wall', { p_sid:S.me.sid, p_token:S.me.token, p_cls:S.wallCls });
     if (!r.ok){ if (r.err === 'closed'){ S.tabs.wall = false; updateTabLocks(); } else toast(errMsg(r.err)); return; }
     let posts = r.posts || [];
-    if (!teacherView && !S.pub && S.wallCls) posts = posts.filter(p => p.cls === S.wallCls);
-    $('wallLock').classList.toggle('hidden', teacherView || S.pub || r.can_see_all);
-    $('wallChips').classList.toggle('hidden', !teacherView && !S.pub && !r.can_see_all);
+    if (!teacherView && S.wallCls) posts = posts.filter(p => p.cls === S.wallCls);
+    $('wallLock').classList.toggle('hidden', teacherView || r.can_see_all);
+    $('wallChips').classList.toggle('hidden', !teacherView && !r.can_see_all);
     const mine = (r.posts || []).filter(p => p.mine).length;
     if (!teacherView) S.myPosts = Math.max(S.myPosts, mine);
-    $('myCount').textContent = (teacherView || S.pub) ? '' : '내 사례 ' + mine + ' / 4';
+    $('myCount').textContent = teacherView ? '' : '내 사례 ' + mine + ' / 4';
     renderWall($('wallStudent'), posts, { teacher: teacherView });
   } finally { wallBusy = false; }
 }
@@ -1803,7 +1789,7 @@ function setCat(c){
 }
 document.querySelectorAll('#catPick button').forEach(b => b.addEventListener('click', () => setCat(b.dataset.cat)));
 function openPostForm(){
-  if (!S.me || S.asTeacher || S.pub) return;
+  if (!S.me || S.asTeacher) return;
   if (S.myPosts >= 4){ toast(errMsg('too_many')); return; }
   showMsg('postErr', '');
   openModal('mPost');
@@ -1844,8 +1830,7 @@ $('pwGo').addEventListener('click', async () => {
   S.teacherPw = pw; closeModal('mTeacher'); openTeacher();
 });
 function openTeacher(){
-  if (S.pub){ S.wasPub = true; S.pub = false; }
-  showScreen('teacher'); clearInterval(pollTimer); clearInterval(pubEntryTimer);
+  showScreen('teacher'); clearInterval(pollTimer);
   tShow(T.view); loadOverview();
   clearInterval(T.timer); T.timer = setInterval(() => { if (!$('teacher').classList.contains('hidden')) loadOverview(); }, 6000);
 }
@@ -1863,26 +1848,17 @@ async function loadOverview(){
   T.data = r; S.tabs = r.tabs; renderTeacher();
 }
 const TAB_INFO = { lab:['① 실험실 + ② 힘 모아 밀기', '교과서 164쪽 페트병 실험 + 미션, 사람 수·무게·바닥을 바꿔 상자 밀기'], dir:['③ 마찰력 방향 찾기', '7가지 상황에서 화살표 그리기'], wall:['④ 사례 담벼락', '크게/작게 하는 경우 올리기'] };
-const PUB_INFO = { lab:'실험실·힘 모아 밀기를 입장 없이 해 볼 수 있어요 (기록은 저장 안 됨)', dir:'방향 찾기를 입장 없이 연습할 수 있어요 (기록은 저장 안 됨)', wall:'모든 반 담벼락을 입장 없이 볼 수 있어요 (글은 못 올림)' };
 function renderTeacher(){
   const d = T.data; if (!d) return;
   // 탭 스위치
   const sw = $('tabSwitches'); sw.textContent = '';
   Object.entries(TAB_INFO).forEach(([k, [name, sub]]) => {
-    const open = !!d.tabs[k], pk = 'pub_' + k, pub = !!d.tabs[pk];
+    const open = !!d.tabs[k];
     sw.append(el('div', { class:'card' }, el('h4', { text:name }), el('div', { style:'color:var(--ink2)', text:sub }),
-      el('div', { style:'font-weight:800;margin-top:8px', text:'입장한 학생' }),
       el('div', { class:'bigswitch' },
         el('button', { class:'open' + (open ? ' on' : ''), type:'button', onclick:() => setTab(k, true) }, '🔓 열기'),
         el('button', { class:'close' + (!open ? ' on' : ''), type:'button', onclick:() => setTab(k, false) }, '🔒 닫기')),
-      el('div', { style:'font-weight:800;color:' + (open ? 'var(--ok)' : 'var(--bad)'), text: open ? '지금 학생에게 열려 있어요' : '지금 학생에게 닫혀 있어요' }),
-      el('div', { class:'pubbox' + (pub ? ' on' : '') },
-        el('div', { style:'font-weight:800', text:'👀 로그인 없이 보기' }),
-        el('div', { style:'color:var(--ink2);font-size:15px', text:PUB_INFO[k] }),
-        el('div', { class:'bigswitch' },
-          el('button', { class:'open' + (pub ? ' on' : ''), type:'button', onclick:() => setTab(pk, true) }, '👀 켜기'),
-          el('button', { class:'close' + (!pub ? ' on' : ''), type:'button', onclick:() => setTab(pk, false) }, '끄기')),
-        el('div', { style:'font-weight:800;color:' + (pub ? 'var(--ok)' : 'var(--ink2)'), text: pub ? '켜짐 — 주소를 아는 누구나 볼 수 있어요' : '꺼짐' }))));
+      el('div', { style:'font-weight:800;color:' + (open ? 'var(--ok)' : 'var(--bad)'), text: open ? '지금 학생에게 열려 있어요' : '지금 학생에게 닫혀 있어요' })));
   });
   // 닉네임 요청
   const reqs = d.students.filter(s => s.pending_nick);
@@ -1898,28 +1874,43 @@ function renderTeacher(){
   const list = d.students.filter(s => !S.tStuCls || s.cls === S.tStuCls);
   $('tStuSum').textContent = '입장한 학생 ' + list.length + '명';
   const tb = $('tStuTable'); tb.textContent = '';
-  tb.append(el('tr', {}, ['학번', '닉네임', '실험 미션', '방향 찾기', '사례', ''].map(h => el('th', { text:h }))));
+  tb.append(el('tr', {}, ['학번', '닉네임', '실험 미션', '밀기 도전', '방향 찾기', '사례', ''].map(h => el('th', { text:h }))));
   list.forEach(s => {
     const pg = new Set(s.progress || []);
     const lab = el('td', { class:'marks' }, [1, 2, 3, 4].map(i => el('span', { class: pg.has('lab' + i) ? 'y' : '', text:['①','②','③','④'][i - 1] })));
     const dir = el('td', { class:'marks' }, SC.map((sc, i) => el('span', { class: pg.has('dir' + sc.id) ? 'y' : '', text:i + 1 })));
     tb.append(el('tr', {}, el('td', { text:s.sid }),
       el('td', {}, el('b', { text:s.nick }), s.pending_nick ? el('span', { style:'color:var(--brandInk);font-size:14px', text:' (요청: ' + s.pending_nick + ')' }) : null),
-      lab, dir, el('td', { text:s.posts + '개' }),
+      lab, el('td', { class:'marks' }, [1, 2, 3, 4, 5].map(i => el('span', { class: pg.has('push' + i) ? 'y' : '', text:['①','②','③','④','⑤'][i - 1] }))), dir, el('td', { text:s.posts + '개' }),
       el('td', { style:'white-space:nowrap' },
-        el('button', { class:'btn small', type:'button', onclick:() => { const v = prompt(s.sid + ' 학생의 닉네임을 무엇으로 바꿀까요? (2~10글자)', s.nick); if (v && v.trim() !== s.nick) tNick(s.sid, 'set', v.trim()); } }, '닉네임 바꾸기'),
+        el('button', { class:'btn small', type:'button', onclick:() => openTNick(s, false) }, '닉네임 바꾸기'),
+        ' ',
+        el('button', { class:'btn small dice', type:'button', title:'랜덤 닉네임 고르기', onclick:() => openTNick(s, true) }, '🎲'),
         ' ',
         el('button', { class:'btn small danger', type:'button', onclick:() => tDelStudent(s) }, '기록 삭제'))));
   });
-  if (!list.length) tb.append(el('tr', {}, el('td', { colspan:'6', class:'empty', text:'아직 입장한 학생이 없어요.' })));
+  if (!list.length) tb.append(el('tr', {}, el('td', { colspan:'7', class:'empty', text:'아직 입장한 학생이 없어요.' })));
 }
 async function setTab(k, open){
-  const isPub = k.startsWith('pub_'), base = isPub ? k.slice(4) : k;
-  if (isPub && open && !confirm('주소를 아는 사람은 누구나 입장하지 않고 "' + TAB_INFO[base][0] + '"을(를) 볼 수 있어요.' + (base === 'wall' ? ' (모든 반 사례·닉네임, 글은 못 올림)' : ' (기록은 저장되지 않음)') + '\n켤까요?')) return;
   const r = await rpc('friction_t_set_tab', { p_pw:S.teacherPw, p_tab:k, p_open:open });
   if (!r.ok){ toast(errMsg(r.err)); return; }
-  T.data.tabs = r.tabs; S.tabs = r.tabs; renderTeacher(); toast(TAB_INFO[base][0] + (isPub ? (open ? ' — 로그인 없이 보기를 켰어요.' : ' — 로그인 없이 보기를 껐어요.') : (open ? ' 열었어요.' : ' 닫았어요.')));
+  T.data.tabs = r.tabs; S.tabs = r.tabs; renderTeacher(); toast(TAB_INFO[k][0] + (open ? ' 열었어요.' : ' 닫았어요.'));
 }
+let tNickTarget = null;
+function openTNick(s, random){
+  tNickTarget = s;
+  $('tNickInfo').textContent = s.sid + ' 학생 · 지금 닉네임: ' + s.nick;
+  $('inTNick').value = random ? randomNick() : s.nick;
+  showMsg('tNickErr', ''); openModal('mTNick');
+}
+$('tNickSave').addEventListener('click', async () => {
+  const v = $('inTNick').value.trim(), s = tNickTarget; if (!s) return;
+  if (!nickOk(v)){ showMsg('tNickErr', errMsg('bad_nick')); return; }
+  if (v === s.nick){ closeModal('mTNick'); return; }
+  const r = await rpc('friction_t_nick', { p_pw:S.teacherPw, p_sid:s.sid, p_action:'set', p_new:v });
+  if (!r.ok){ showMsg('tNickErr', errMsg(r.err)); return; }
+  closeModal('mTNick'); toast(s.sid + ' 학생 닉네임을 "' + v + '"(으)로 바꿨어요.'); loadOverview();
+});
 async function tNick(sid, action, v){
   const r = await rpc('friction_t_nick', { p_pw:S.teacherPw, p_sid:sid, p_action:action, p_new:v || null });
   if (!r.ok){ toast(errMsg(r.err)); return; }
@@ -1940,7 +1931,6 @@ async function loadTeacherWall(){
 $('tWallRefresh').addEventListener('click', loadTeacherWall);
 $('tPresent').addEventListener('click', () => { T.present = !T.present; $('wallTeacher').classList.toggle('present', T.present); $('tPresent').textContent = T.present ? '🖥️ 보통 크기' : '🖥️ 크게 보기'; loadTeacherWall(); });
 $('tToClass').addEventListener('click', () => {
-  if (S.pub){ S.wasPub = true; S.pub = false; }
   S.asTeacher = true; clearInterval(T.timer);
   showScreen('main'); updateHeader(); updateTabLocks();
   clearInterval(pollTimer); pollTimer = setInterval(refreshState, 6000);
@@ -1949,8 +1939,7 @@ $('tToClass').addEventListener('click', () => {
 $('tLogout').addEventListener('click', teacherLogout);
 function teacherLogout(){
   S.teacherPw = null; S.asTeacher = false; clearInterval(T.timer); T.data = null;
-  if (S.wasPub){ location.reload(); return; }
-  if (S.me) startStudent(); else { showScreen('entry'); startPublicCheck(); }
+  if (S.me) startStudent(); else { showScreen('entry'); }
 }
 
 /* =====================================================================
@@ -2024,7 +2013,8 @@ const QUESTS = [
 let openQuest = 0, questAuto = true;
 function renderQuests(){
   const box = $('pushQuests'); box.textContent = '';
-  const doneArr = QUESTS.map(q => q.done(pushLog));
+  const doneArr = QUESTS.map((q, i) => S.progress.has('push' + (i + 1)) || q.done(pushLog));
+  doneArr.forEach((d, i) => { if (d) saveProgress('push' + (i + 1)); });
   if (questAuto){ const i = doneArr.indexOf(false); openQuest = i < 0 ? QUESTS.length - 1 : i; }
   const row = el('div', { class:'mstep-row' });
   QUESTS.forEach((q, i) => row.append(el('button', { class:'mstep' + (doneArr[i] ? ' done' : '') + (openQuest === i ? ' on' : ''), type:'button',
@@ -2148,28 +2138,8 @@ window.addEventListener('resize', () => showPane());
 selectSc(0); renderMissions();
 requestAnimationFrame(loop);
 
-/* ---------- 로그인 없이 담벼락 보기 ---------- */
-let pubEntryTimer = null;
-async function checkPublic(){
-  if ($('entry').classList.contains('hidden')) return;
-  const r = await rpc('friction_public_status', {});
-  $('pubEntry').classList.toggle('hidden', !(r.ok && r.pub));
-}
-function startPublicCheck(){ checkPublic(); clearInterval(pubEntryTimer); pubEntryTimer = setInterval(checkPublic, 5000); }
-$('pubBtn').addEventListener('click', async () => {
-  const r = await rpc('friction_public_status', {});
-  if (!(r.ok && r.pub)){ $('pubEntry').classList.add('hidden'); toast('지금은 로그인 없이 볼 수 없어요.'); return; }
-  S.pub = true; S.tabs = Object.assign({ lab:false, dir:false, wall:false }, r.tabs);
-  clearInterval(pubEntryTimer);
-  showScreen('main'); updateHeader(); updateTabLocks();
-  clearInterval(pollTimer); pollTimer = setInterval(refreshState, 5000);
-  selectTab(firstOpenTab() || 'wall');
-});
-$('loginBtn').addEventListener('click', () => location.reload());
-
 (async function boot(){
   if (!configOk){ showScreen('entry'); return; }
-  startPublicCheck();
   const me = loadMe();
   if (me){
     S.me = me;
